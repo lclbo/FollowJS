@@ -1,0 +1,60 @@
+midi.html<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="dependencies/css/lib/bootstrap.min.css">
+    <link rel="stylesheet" href="dependencies/css/midi.css">
+    <title>Yamaha QL/CL MIDI Cue Monitor</title>
+</head>
+<body>
+    <script src="dependencies/js/lib/jquery-3.3.1.min.js"></script>
+    <script src="dependencies/js/lib/popper.min.js"></script>
+    <script src="dependencies/js/lib/bootstrap.min.js"></script>
+    <script src="dependencies/js/lib/webmidi.min.js"></script>
+    <script src="dependencies/js/midi.js"></script>
+
+    <div class="settingsFooter fixed-bottom float-right">
+        <div id="settingsFooterContent" class="d-flex flex-column text-center settingsContent text-dark">
+            <div class="pt-1">
+                <label for="midiInput" class="h4">MIDI Interface</label>
+            </div>
+            <div class="pt-1">
+                <select id="midiInput">
+                    <option value="0" selected disabled>-no MIDI-In-</option>
+                </select>
+            </div>
+            <div class="pt-1">
+                <button class="btn btn-success" onClick="setMidiInputAndRun();">select and start</button>
+            </div>
+            <div class="text-warning text-monospace" id="midi-debug"></div>
+            <div class="text-danger text-monospace">Last MIDI message on active interface:</div>
+            <div class="text-danger text-monospace" id="midimsg">none</div>
+            <div class="pl-2 fixed-bottom text-black-50 text-left">QLCue v1.0.5 <small>lclausing.com, 2021</small></div>
+
+        </div>
+    </div>
+    <div id="footerToggle" class="pr-2 fixed-bottom text-black-50 text-right" onclick="toggleFooter();">X</div>
+    <div id="titlebar"></div>
+
+    <div class="container-fluid bg-dark">
+        <div class="row lh200">
+            <div class="col-2">
+                <div id="midileft" class="size4rem text-center text-white font-weight-bold text-monospace">
+                    -
+                </div>
+            </div>
+            <div class="col-8 align-content-end electronDragRegion">
+                <div id="midicenter" class="size10rem align-content-end text-center text-white font-weight-bolder text-monospace">
+                    -
+                </div>
+            </div>
+            <div class="col-2 align-content-end">
+                <div id="midiright" class="size2rem font-weight-bold text-center text-white text-monospace">
+                    --:--
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,123 @@
+/* FollowJS */
+.container-fluid {
+    height: 100vh;
+}
+.size1rem5 {
+    font-size: 1.5rem;
+}
+.size2rem {
+    font-size: 2rem;
+}
+.size3rem {
+    font-size: 3rem;
+}
+.size4rem {
+    font-size: 4rem;
+}
+.size5rem {
+    font-size: 5rem;
+}
+.size8rem {
+    font-size: 8rem;
+}
+.size10rem {
+    font-size: 10rem;
+}
+.hidden {
+    display: none !important;
+}
+.hiddenVis {
+    visibility: hidden !important;
+}
+.settingsFooter {
+    display: block;
+    width: 100%;
+}
+#footerToggle {
+    opacity: 0.5;
+}
+#footerToggle:hover {
+    opacity: 1;
+}
+.settingsContent {
+    display: block;
+    width: 100%;
+    border-bottom: 4px solid red;
+    background-color: #ff3d49;
+    height: 100vh;
+    padding: 10vh 5px 5px;
+    /* opacity: 0.9; */
+}
+.blink {
+    animation: blink 1500ms step-end infinite;
+}
+@keyframes blink {
+    50% { opacity: 0.2 }
+}
+.electronDragRegion {
+    -webkit-app-region: drag;
+}
+.lh200 {
+    line-height: 200px !important;
+}
+#titlebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    height: 24px;
+    /*background-color: #005cbf;*/
+    background-color: #762551;
+    -webkit-app-region: drag;
+}
+
+#webcam {
+    width: 100%;
+    height: 100%;
+}
+
+#webcamDrawArea {
+    width: 800px;
+    height: 450px;
+    border: 2px solid yellow;
+    box-sizing: border-box;
+    overflow: hidden;
+    position: absolute;
+    top: 48px;
+    left: 50%;
+    transform: translate(-50%,0);
+}
+
+.gridOverlay {
+    /*border: 1px solid red;*/
+    position: absolute;
+    /*transform: translate(-50%,-50%);*/
+    top: 0px;
+    left: 0px;
+    overflow: visible;
+}
+
+.spotMarker {
+    /*border: 1px solid red;*/
+    position: absolute;
+    transform: translate(-50%,-50%);
+    top: 0px;
+    left: 0px;
+    overflow: visible;
+}
+
+.cameraImageHugeWarningTextOverlay {
+    position: absolute;
+    transform: translate(-50%,-50%);
+    top: 50%;
+    left: 50%;
+    background: #AAAA0088;
+    animation: linear;
+    width: 80%;
+    font-size: 3rem;
+    text-align: center;
+    padding: 2rem;
+    z-index: 1000;
+}
