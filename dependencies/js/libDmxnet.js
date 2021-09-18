@@ -209,6 +209,8 @@ sender.prototype.setChannels = function (start, channels) {
         throw "Channel Array exceeds 512";
     }
     this.values.splice(index, 0, ...channels);
+
+    this.transmit();
 };
 
 //Fill Channels

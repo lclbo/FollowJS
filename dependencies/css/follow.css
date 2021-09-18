@@ -121,3 +121,52 @@
     padding: 2rem;
     z-index: 1000;
 }
+
+.spotStatusOverlayTable {
+    position: absolute;
+    transform: translate(0,-50%);
+    left: 50px;
+    top: 80%;
+    border: 2px solid yellow;
+    color: #dddddd;
+    z-index: 100;
+    width: 150px;
+    /*text-align: left;*/
+}
+
+.spotStatusGauge {
+    text-align: left;
+    width: 100%;
+    overflow: hidden;
+    /*text-overflow: revert;*/
+    color: #FFFFFF;
+    mix-blend-mode: difference;
+    border-right: 3px solid #FF0000;
+}
+
+.spotStatusGauge div {
+    width: 150px;
+}
+
+.spotStatusOverlayDim {
+    background: linear-gradient(to right, #000000 0%, #FFFFFF 100%);
+}
+.spotStatusOverlayColor {
+    /*background: linear-gradient(to right, #ffffff 0%, #FFAA00FF 100%);*/
+    background: linear-gradient(to right, #ffffff 0%,
+    #FF0000 7.45%, #ff0000 10.58%,
+    #fcdf56 14.5%, #fcdf56 17.64%,
+    #04bb3d 21.57%, #04bb3d 24.7%,
+    #0ab7d7 29.02%, #0ab7d7 32.15%,
+    #ffaa00 36.08%, #ffaa00 39.21%,
+    #2f00cd 43.14%, #2f00cd 46.27%,
+    #ffffff 50%,
+    #000000 50.1%,
+    #000000 100%);
+}
+.spotStatusOverlayFocus {
+    background: linear-gradient(to right, #1066ffFF 0%, #00448dFF 100%);
+}
+.spotStatusOverlayFrost {
+    background: linear-gradient(to right, #CCCCCCFF 0%, #CCCCCC22 100%);
+}

@@ -39,7 +39,7 @@ let calibrationStep = 1;
 let x_img_max = 800;
 let y_img_max = 450;
 let r_img_min = 10;
-let r_img_max = 50;
+let r_img_max = 30;
 
 let connectedGamepads = new Array(4);
 let spots = [];
@@ -63,7 +63,7 @@ let keyboardControlConfig = {
 }
 let gamepadControlConfig = {
     config: gamepadLib.xboxOneControllerDefault.config,
-    mapping: gamepadLib.xboxOneControllerDefault.mapping.default
+    mapping: gamepadLib.xboxOneControllerDefault.mapping.legacy
 }
 
 let spot1config = {
@@ -71,20 +71,27 @@ let spot1config = {
         x: 0.158,
         y: 0.815,
         r: 0.1,
+        frost: 0,
+        focus: 0.5,
         dim: 1.0,
         shutterOpen: false,
-        colorWheelIndex: 0
+        colorWheelIndex: 0,
+        CTOin: false
     },
     increment: {
         x: 0.4,
         y: 0.6,
         r: 10,
+        frost: 10,
+        focus: 10,
         dim: 25
     },
     boundaries: {
         x: {min: 0.0, max: 1.0},
         y: {min: 0.0, max: 1.0},
-        r: {min: 0.1, max: 1.0},
+        r: {min: 0.05, max: 1.0},
+        frost: {min: 0.0, max: 1.0},
+        focus: {min: 0.0, max: 1.0},
         dim: {min: 0.0, max: 1.0}
     },
     translation: {
@@ -144,6 +151,7 @@ function skipCalibrationPoint() {
 function finishCalibration() {
     highlightImageCoord(false);
     exportCalibration();
+    hideGridOverlay();
     calibrationActive = false;
 }
 function exportCalibration() {
@@ -163,7 +171,7 @@ function exportCalibration() {
 }
 
 function showCalibrationPoint() {
-    console.log("step "+calibrationStep);
+    // console.log("step "+calibrationStep);
     highlightImageCoord(true,(((calibrationStep-1) % 9) + 1) * 0.1,(Math.floor((calibrationStep-1) / 9) + 1) * 0.1);
 }
 
@@ -194,6 +202,13 @@ function printDMX() {
     }
 }
 
+function printGauges(spotRef, spotNumber) {
+    document.getElementById("gauge["+spotNumber+"][dim]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.dim] / 255 * 100).toString() + "%";
+    document.getElementById("gauge["+spotNumber+"][color]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.colorWheel] / 255 * 100).toString() + "%";
+    document.getElementById("gauge["+spotNumber+"][focus]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.focus] / 255 * 100).toString() + "%";
+    document.getElementById("gauge["+spotNumber+"][frost]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.frost] / 255 * 100).toString() + "%";
+}
+
 // function sendDMX() {
 //     for(const chan of Object.keys(spot1.dmxBuffer)) {
 //         let channelInt = (spot1.config.connection.address-1+Number.parseInt(chan)); // - 1; //ArtNet lib has 0-indexed channels
@@ -208,6 +223,7 @@ function drawIntervalCallback() {
     // spot1.positionToDMX();
     // spot1.stateToDMX();
     printDMX();
+    printGauges(spot1, 1);
     // sendDMX();
 }
 
@@ -459,17 +475,17 @@ function gamepadReadAxes() {
         let pad1axisY = gamepadObject.currentState.axes[spot1.control.gamepad.mapping.axes.y];
 
         //square function for transfer axis to movement
-        let absX = Math.pow(Math.abs(pad1axisX),1) * spot1.config.increment.x;
-        let absY = Math.pow(Math.abs(pad1axisY),1) * spot1.config.increment.y;
+        let absX = Math.abs(pad1axisX);
+        let absY = Math.abs(pad1axisY);
         let dirX = Math.sign(pad1axisX);
         let dirY = Math.sign(pad1axisY);
 
-        let pad1moveX = ((absX > spot1.control.gamepad.config.deadZone) ? ((absX-spot1.control.gamepad.config.deadZone)/(1-spot1.control.gamepad.config.deadZone)*dirX) : 0);
-        let pad1moveY = ((absY > spot1.control.gamepad.config.deadZone) ? ((absY-spot1.control.gamepad.config.deadZone)/(1-spot1.control.gamepad.config.deadZone)*dirY) : 0);
+        let pad1moveX = ((absX > spot1.control.gamepad.config.deadZones.movement) ? ((absX-spot1.control.gamepad.config.deadZones.movement)/(1-spot1.control.gamepad.config.deadZones.movement)*dirX) : 0);
+        let pad1moveY = ((absY > spot1.control.gamepad.config.deadZones.movement) ? ((absY-spot1.control.gamepad.config.deadZones.movement)/(1-spot1.control.gamepad.config.deadZones.movement)*dirY) : 0);
 
         if(pad1moveX !== 0 || pad1moveY !== 0) {
-            let moveX = Math.sign(spot1.control.gamepad.mapping.axesDirections.x) * pad1moveX * spot1.control.gamepad.config.modifier;
-            let moveY = Math.sign(spot1.control.gamepad.mapping.axesDirections.y) * pad1moveY * spot1.control.gamepad.config.modifier;
+            let moveX = Math.sign(spot1.control.gamepad.mapping.axesDirections.x) * pad1moveX * spot1.control.gamepad.config.modifier * spot1.config.increment.x;
+            let moveY = Math.sign(spot1.control.gamepad.mapping.axesDirections.y) * pad1moveY * spot1.control.gamepad.config.modifier * spot1.config.increment.y;
             // console.log("moveSpot("+moveX+","+moveY+")");
             spot1.moveSpot(moveX,moveY);
         }
@@ -477,13 +493,37 @@ function gamepadReadAxes() {
 
         // Iris
         let pad1axisR = gamepadObject.currentState.axes[spot1.control.gamepad.mapping.axes.r];
-        let absR = Math.pow(Math.abs(pad1axisR),1) * spot1.config.increment.r;
+        let absR = Math.abs(pad1axisR);
         let dirR = Math.sign(pad1axisR);
-        let pad1moveR = ((absR > spot1.control.gamepad.config.deadZone) ? ((absR-spot1.control.gamepad.config.deadZone)/(1-spot1.control.gamepad.config.deadZone)*dirR) : 0);
+        let pad1moveR = ((absR > spot1.control.gamepad.config.deadZones.other) ? ((absR-spot1.control.gamepad.config.deadZones.other)/(1-spot1.control.gamepad.config.deadZones.other)*dirR) : 0);
         if(pad1moveR !== 0) {
-            let moveR = Math.sign(spot1.control.gamepad.mapping.axesDirections.r) * pad1moveR * spot1.control.gamepad.config.modifier;
+            let moveR = Math.sign(spot1.control.gamepad.mapping.axesDirections.r) * pad1moveR * spot1.control.gamepad.config.modifier * spot1.config.increment.r;
 
             spot1.resizeSpot(moveR);
+        }
+
+
+        // // Frost
+        // let pad1axisFrost = gamepadObject.currentState.axes[spot1.control.gamepad.mapping.axes.frost];
+        // let absFrost = Math.abs(pad1axisFrost);
+        // let dirFrost = Math.sign(pad1axisFrost);
+        // let pad1moveFrost = ((absFrost > spot1.control.gamepad.config.deadZones.other) ? ((absFrost-spot1.control.gamepad.config.deadZones.other)/(1-spot1.control.gamepad.config.deadZones.other)*dirFrost) : 0);
+        // if(pad1moveFrost !== 0) {
+        //     let moveFrost = Math.sign(spot1.control.gamepad.mapping.axesDirections.frost) * pad1moveFrost * spot1.control.gamepad.config.modifier * spot1.config.increment.frost;
+        //
+        //     spot1.frostSpot(moveFrost);
+        // }
+
+
+        // Dimmer
+        let pad1axisDim = gamepadObject.currentState.axes[spot1.control.gamepad.mapping.axes.dim];
+        let absDim = Math.abs(pad1axisDim);
+        let dirDim = Math.sign(pad1axisDim);
+        let pad1moveDim = ((absDim > spot1.control.gamepad.config.deadZones.other) ? ((absDim-spot1.control.gamepad.config.deadZones.other)/(1-spot1.control.gamepad.config.deadZones.other)*dirDim) : 0);
+        if(pad1moveDim !== 0) {
+            let moveDim = Math.sign(spot1.control.gamepad.mapping.axesDirections.dim) * pad1moveDim * spot1.control.gamepad.config.modifier * spot1.config.increment.dim;;
+
+            spot1.dimSpot(moveDim);
         }
     })
 }
@@ -515,16 +555,25 @@ function gamepadReadButtons() {
                         case spot1.control.gamepad.mapping.buttons.colorWheelPrev:
                             spot1.rotateColorWheel(-1);
                             break;
+                        case spot1.control.gamepad.mapping.buttons.snapCTO:
+                            spot1.snapToCTO();
+                            break;
                     }
                 }
                 else { //continuous press
                     // console.log("still pressing button " + index);
                     switch (index) {
-                        case spot1.control.gamepad.mapping.buttons.dimUp:
-                            spot1.dimSpot(spot1.config.increment.dim * spot1.control.gamepad.config.modifier)
+                        case spot1.control.gamepad.mapping.buttons.focusUp:
+                            spot1.focusSpot(spot1.config.increment.focus * spot1.control.gamepad.config.modifier)
                             break;
-                        case spot1.control.gamepad.mapping.buttons.dimDown:
-                            spot1.dimSpot(-1 * spot1.config.increment.dim * spot1.control.gamepad.config.modifier)
+                        case spot1.control.gamepad.mapping.buttons.focusDown:
+                            spot1.focusSpot(-1 * spot1.config.increment.focus * spot1.control.gamepad.config.modifier)
+                            break;
+                        case spot1.control.gamepad.mapping.buttons.frostUp:
+                            spot1.frostSpot(spot1.config.increment.frost * spot1.control.gamepad.config.modifier)
+                            break;
+                        case spot1.control.gamepad.mapping.buttons.frostDown:
+                            spot1.frostSpot(-1 * spot1.config.increment.frost * spot1.control.gamepad.config.modifier)
                             break;
                     }
                 }

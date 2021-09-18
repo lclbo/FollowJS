@@ -18,9 +18,27 @@ module.exports = {
                     min: 0,
                     max: 256*256-1
                 },
-                shutter: {
+                frost: {
                     min: 0,
                     max: 255
+                },
+                focus: {
+                    min: 0,
+                    max: 255
+                },
+                shutter: {
+                    min: 0,
+                    max: 255,
+                }
+            },
+            presets: {
+                shutter: {
+                    close: 0,
+                    open: 255
+                },
+                color: {
+                    open: 0,
+                    cto: 37
                 }
             },
             mapping: {
@@ -33,6 +51,8 @@ module.exports = {
                 dimFine: 7,
                 shutter: 5,
                 colorWheel: 4,
+                frost: 14,
+                focus: 17
             },
             macros: {
                 lampOn: {
