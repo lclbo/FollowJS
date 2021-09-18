@@ -67,7 +67,7 @@ module.exports = {
                     short: "Lamp Half",
                     channel: 24,
                     value: 101,
-                    hold: 5
+                    hold: 10
                 },
                 lampOff: {
                     name: "Lamp Off after 5s",
@@ -81,7 +81,7 @@ module.exports = {
                     short: "Reset P/T",
                     channel: 23,
                     value: 127,
-                    hold: 7
+                    hold: 10
                 }
             },
             colorWheel: [0,19,37,55,74,92,110,128,192,255],

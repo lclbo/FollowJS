@@ -323,6 +323,7 @@ function executeMacro(btnKey) {
         console.log(macro.name);
         let oldValue = spot1.dmxBuffer[macro.channel];
         spot1.dmxBuffer[macro.channel] = macro.value;
+        spot1.sendDMX();
         window.setTimeout(setChannelToValue, (Number.parseInt(macro.hold)*1000), macro.channel, oldValue, btnKey);
     }
     catch {
@@ -336,6 +337,7 @@ function setChannelToValue(chan,val,btnKey) {
     // document.getElementById("macroButton["+btnKey+"]").classList.remove("btn-success");
     document.getElementById("macroButton["+btnKey+"]").firstElementChild.classList.add("hiddenVis");
     document.getElementById("macroButton["+btnKey+"]").disabled = false;
+    spot1.sendDMX();
 }
 
 
@@ -521,7 +523,7 @@ function gamepadReadAxes() {
         let dirDim = Math.sign(pad1axisDim);
         let pad1moveDim = ((absDim > spot1.control.gamepad.config.deadZones.other) ? ((absDim-spot1.control.gamepad.config.deadZones.other)/(1-spot1.control.gamepad.config.deadZones.other)*dirDim) : 0);
         if(pad1moveDim !== 0) {
-            let moveDim = Math.sign(spot1.control.gamepad.mapping.axesDirections.dim) * pad1moveDim * spot1.control.gamepad.config.modifier * spot1.config.increment.dim;;
+            let moveDim = Math.sign(spot1.control.gamepad.mapping.axesDirections.dim) * pad1moveDim * spot1.control.gamepad.config.modifier * spot1.config.increment.dim;
 
             spot1.dimSpot(moveDim);
         }

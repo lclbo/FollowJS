@@ -103,12 +103,12 @@ sender=function (options,parent){
     //Transmit first Frame
     this.transmit();
 
-    //Workaround for this-Contect inside setInterval
-    // var _this=this;
-    // //Send Frame all 1000ms even there is no channel change
-    // this.interval=setInterval(function() {
-    //     _this.transmit();
-    // },1000);
+    // Workaround for this-Contect inside setInterval
+    var _this=this;
+    //Send Frame all 1000ms even there is no channel change
+    this.interval=setInterval(function() {
+        _this.transmit();
+    },1000);
 }
 
 //Transmit function
@@ -121,7 +121,7 @@ sender.prototype.transmit = function () {
         // }
 
         // disable auto-retransmit since transmit was called
-        clearInterval(this.interval);
+        // clearInterval(this.interval);
 
         // disable sequential order functionality
         this.ArtDmxSeq = 0;
@@ -145,10 +145,10 @@ sender.prototype.transmit = function () {
         });
 
         //Send Frame all 1000ms even there is no channel change
-        this.interval=setInterval(function() {
-            console.log("auto-retransmit");
-            _this.transmit();
-        },1000);
+        // this.interval=setInterval(function() {
+        //     console.log("auto-retransmit");
+        //     _this.transmit();
+        // },1000);
     }
 };
 
