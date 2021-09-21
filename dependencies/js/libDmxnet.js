@@ -39,33 +39,33 @@ dmxnet.prototype.newSender=function(options) {
 }
 
 //define sender with user options and inherited parent object
-sender=function (options,parent){
+sender=function (options={},parent){
     //save parent object
     this.parent=parent;
 
     this.socket_ready=false;
     //set options
-    var options = options || {};
-    this.net=options.net || 0;
-    this.subnet=options.subnet || 0;
-    this.universe=options.universe || 0;
-    this.subuni=options.subuni;
-    this.ip=options.ip || "255.255.255.255";
-    this.port=options.port || 6454;
-    this.verbose=this.parent.verbose;
+    // var options = options || {};
+    this.net = options.net || 0;
+    this.subnet = options.subnet || 0;
+    this.universe = options.universe || 0;
+    this.subuni = options.subuni;
+    this.ip = options.ip || "255.255.255.255";
+    this.port = options.port || 6454;
+    this.verbose = this.parent.verbose;
     this.highestChannelToTransmit = 2;
 
     //Validate Input
-    if(this.net>127) {
+    if(this.net > 127) {
         throw "Invalid Net, must be smaller than 128";
     }
-    if(this.universe>15) {
+    if(this.universe > 15) {
         throw "Invalid Universe, must be smaller than 16";
     }
-    if(this.subnet>15) {
+    if(this.subnet > 15) {
         throw "Invalid subnet, must be smaller than 16";
     }
-    if((this.net<0)||(this.subnet<0)||(this.universe<0)) {
+    if((this.net < 0)||(this.subnet < 0)||(this.universe < 0)) {
         throw "Subnet, Net or Universe must be 0 or bigger!";
     }
     // if(this.verbose>0) {
@@ -75,13 +75,13 @@ sender=function (options,parent){
     //init dmx-value array
     this.values = [];
     // fill all 512 channels
-    for(var i = 0; i < 512; i++) {
-        this.values[i]=0;
+    for(let i = 0; i < 512; i++) {
+        this.values[i] = 0;
     }
 
     //Build Subnet/Universe/Net Int16
     if(!this.subuni) {
-        this.subuni=(this.subnet<<4)|(this.universe);
+        this.subuni = (this.subnet<<4)|(this.universe);
     }
 
     //ArtDmxSeq
@@ -89,7 +89,7 @@ sender=function (options,parent){
 
     //Create Socket
     this.socket=dgram.createSocket('udp4');
-    _this=this;
+    let _this = this;
     //Check IP and Broadcast
     if(isBroadcast(this.ip)) {
         this.socket.bind(function() {
@@ -103,8 +103,6 @@ sender=function (options,parent){
     //Transmit first Frame
     this.transmit();
 
-    // Workaround for this-Contect inside setInterval
-    var _this=this;
     //Send Frame all 1000ms even there is no channel change
     this.interval=setInterval(function() {
         _this.transmit();
@@ -115,7 +113,8 @@ sender=function (options,parent){
 sender.prototype.transmit = function () {
     // console.log("transmit ArtNet");
     //Only transmit if socket is ready
-    if(this.socket_ready) {
+    let _this = this;
+    if (this.socket_ready) {
         // if(this.ArtDmxSeq>255) {
         //     this.ArtDmxSeq=1;
         // }
@@ -134,11 +133,7 @@ sender.prototype.transmit = function () {
 
         // log.debug("Packet content: "+udppacket.toString('hex'));
         //Send UDP
-
-        var client=this.socket;
-        _this=this;
-
-        client.send(udppacket, 0, udppacket.length, this.port, this.ip, function(err, bytes) {
+        this.socket.send(udppacket, 0, udppacket.length, this.port, this.ip, function (err, bytes) {
             if (err)
                 throw err;
             // log.info('ArtDMX frame sent to ' + _this.ip +':'+ _this.port);
@@ -164,10 +159,10 @@ sender.prototype.setChannel = function (channel, value) {
     let index = channel - 1;
 
     if((channel > 512) || (channel < 1)) {
-        throw "Channel must be between 1 and 512";
+        throw "setChannel: Channel must be between 1 and 512";
     }
     if((value > 255) || (value < 0)) {
-        throw "Value must be between 0 and 255";
+        throw "setChannel: Value must be between 0 and 255";
     }
 
     this.values[index] = value;
@@ -187,10 +182,10 @@ sender.prototype.prepChannel = function (channel, value) {
     let index = channel - 1;
 
     if((channel > 512) || (channel < 1)) {
-        throw "Channel must be between 1 and 512";
+        throw "prepChannel: Channel must be between 1 and 512";
     }
     if((value > 255) || (value<0)) {
-        throw "Value must be between 0 and 255";
+        throw "prepChannel: Value must be between 0 and 255";
     }
     this.values[index] = value;
 
@@ -203,12 +198,15 @@ sender.prototype.setChannels = function (start, channels) {
     let index = start - 1;
     let length = channels.length;
     if((start > 512) || (start < 1)) {
-        throw "Channel must be between 1 and 512";
+        throw "setChannels: Channel must be between 1 and 512 but actually is " + start + ".";
     }
     if((start + length - 1) > 512) {
         throw "Channel Array exceeds 512";
     }
-    this.values.splice(index, 0, ...channels);
+    channels.forEach((cVal,cIdx) => {
+        this.values[index+cIdx-1] = cVal;
+    });
+    // this.values.splice(index, channels.length, ...channels);
 
     this.transmit();
 };
@@ -219,13 +217,13 @@ sender.prototype.fillChannels = function (start, stop, value) {
     let indexStop = stop - 1;
 
     if((start > 512) || (start < 1)) {
-        throw "Start Channel must be between 1 and 512";
+        throw "fillChannels: Start Channel must be between 1 and 512";
     }
     if((stop > 512) || (stop < 1)) {
-        throw "Stop Channel must be between 1 and 512";
+        throw "fillChannels: Stop Channel must be between 1 and 512";
     }
     if((value > 255) || (value < 0)) {
-        throw "Value must be between 0 and 255";
+        throw "fillChannels: Value must be between 0 and 255";
     }
     for(let i=indexStart; i<=indexStop; i++) {
         this.values[i] = value;
@@ -249,10 +247,7 @@ function isBroadcast(ipaddress) {
             throw "Invalid IP (Octet "+(i+1)+")";
         }
     }
-    if(Number.parseInt(oct[3]) === 255) {
-        return true;
-    }
-    return false;
+    return Number.parseInt(oct[3]) === 255;
 }
 
 //ToDo: Receiver

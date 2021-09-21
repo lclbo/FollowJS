@@ -42,9 +42,9 @@
     <div class="container-fluid bg-dark align-content-center align-items-center text-center">
         <div id="webcamDrawArea">
             <div id="controllerConnectOverlay" class="cameraImageHugeWarningTextOverlay">connect or move controller</div>
-            <img src="//:0" id="webcam" alt="Camera image will be here" class="refresh" data-rscIndex="1" data-defaultPrescale="2" data-path="http://192.168.0.225:8765/picture/1/current/">
-<!--            <img src="placeholder.jpeg" id="webcam">-->
-            <svg height="450" width="800" class="gridOverlay" id="tenthGridOverlay">
+<!--            <img src="//:0" id="webcam" alt="Camera image will be here" class="refresh" data-rscIndex="1" data-defaultPrescale="2" data-path="http://192.168.0.225:8765/picture/1/current/">-->
+            <img src="placeholder.jpeg" id="webcam">
+            <svg height="450" width="800" class="gridOverlay hidden" id="tenthGridOverlay">
                 <line x1="0" y1="0" x2="800" y2="450" stroke="orange"></line>
                 <line x1="0" y1="450" x2="800" y2="0" stroke="orange"></line>
 
@@ -68,12 +68,13 @@
                 <line x1="640" y1="0" x2="640" y2="450" stroke="green"></line>
                 <line x1="720" y1="0" x2="720" y2="450" stroke="green"></line>
             </svg>
-            <svg height="100" width="100" class="spotMarker" id="spotMarker1">
-                <circle cx="50" cy="50" r="50" fill="red" fill-opacity=".4" />
-<!--                <text x="0" y="50" fill="black" class="coordLabel" id="coordLabel1">(|)</text>-->
-<!--                <text x="10" y="65" fill="black" class="radiusLabel" id="radiusLabel1">r=</text>-->
+            <svg height="100" width="100" class="spotMarker" id="spotMarker[1]">
+                <circle cx="50" cy="50" r="50" fill="purple" fill-opacity=".4" />
             </svg>
-            <svg height="50" width="50" class="spotMarker" id="highlightMarker">
+            <svg height="100" width="100" class="spotMarker" id="spotMarker[2]">
+                <circle cx="50" cy="50" r="50" fill="yellow" fill-opacity=".4" />
+            </svg>
+            <svg height="50" width="50" class="spotMarker hidden" id="highlightMarker">
                 <circle cx="25" cy="25" r="25" stroke="blue" stroke-width="2" fill="none" />
                 <circle cx="25" cy="25" r="5" fill="blue" fill-opacity=".4" />
             </svg>
@@ -90,6 +91,19 @@
                 <div class="spotStatusGauge" id="gauge[1][frost]">
                     <div class="spotStatusOverlayFrost">Frost</div>
                 </div>
+
+                <div class="spotStatusGauge" id="gauge[2][dim]">
+                    <div class="spotStatusOverlayDim">Dimmer</div>
+                </div>
+                <div class="spotStatusGauge" id="gauge[2][color]">
+                    <div class="spotStatusOverlayColor">Color</div>
+                </div>
+                <div class="spotStatusGauge" id="gauge[2][focus]">
+                    <div class="spotStatusOverlayFocus">Focus</div>
+                </div>
+                <div class="spotStatusGauge" id="gauge[2][frost]">
+                    <div class="spotStatusOverlayFrost">Frost</div>
+                </div>
             </div>
 
         </div>
@@ -101,70 +115,11 @@
         <div id="downloadButtonLanding" class="fixed-bottom pb-5"></div>
 
         <div class="container text-light text-start fixed-bottom">
-            <table style="font-size: 0.6em;">
-                <tr>
-                    <td>&nbsp;</td>
-                    <td>C</td>
-                    <td>M</td>
-                    <td>Y</td>
-                    <td>C1</td>
-                    <td>Strb</td>
-                    <td colspan="2">Dim (16b)</td>
-                    <td>Iris</td>
-                    <td>G1</td>
-                    <td>G2</td>
-                    <td>G2rot</td>
-                    <td>P1</td>
-                    <td>P1rot</td>
-                    <td>LFrost</td>
-                    <td>MFrost</td>
-                    <td>HFrost</td>
-                    <td>Focus</td>
-                    <td colspan="2">Pan (16b)</td>
-                    <td colspan="2">Tilt (16b)</td>
-                    <td>Func</td>
-                    <td>Reset</td>
-                    <td>Lamp</td>
-                    <td>tP/T</td>
-                    <td>tCol</td>
-                    <td>tBeam</td>
-                    <td>tGobo</td>
-                </tr>
-                <tr>
-                    <td>Spot1</td>
-                    <td id="dmx[1][1]"></td>
-                    <td id="dmx[1][2]"></td>
-                    <td id="dmx[1][3]"></td>
-                    <td id="dmx[1][4]"></td>
-                    <td id="dmx[1][5]"></td>
-                    <td id="dmx[1][6]"></td>
-                    <td id="dmx[1][7]"></td>
-                    <td id="dmx[1][8]"></td>
-                    <td id="dmx[1][9]"></td>
-                    <td id="dmx[1][10]"></td>
-                    <td id="dmx[1][11]"></td>
-                    <td id="dmx[1][12]"></td>
-                    <td id="dmx[1][13]"></td>
-                    <td id="dmx[1][14]"></td>
-                    <td id="dmx[1][15]"></td>
-                    <td id="dmx[1][16]"></td>
-                    <td id="dmx[1][17]"></td>
-                    <td id="dmx[1][18]"></td>
-                    <td id="dmx[1][19]"></td>
-                    <td id="dmx[1][20]"></td>
-                    <td id="dmx[1][21]"></td>
-                    <td id="dmx[1][22]"></td>
-                    <td id="dmx[1][23]"></td>
-                    <td id="dmx[1][24]"></td>
-                    <td id="dmx[1][25]"></td>
-                    <td id="dmx[1][26]"></td>
-                    <td id="dmx[1][27]"></td>
-                    <td id="dmx[1][28]"></td>
-                </tr>
+            <table style="font-size: 0.6em;" id="dmxTable">
+                <thead id="dmxTableHeader"></thead>
+                <tbody id="dmxTableBody"></tbody>
             </table>
         </div>
-<!--        <button onclick="drawSpot()">draw</button>-->
-<!--        <button onclick="homeSpot()">home</button>-->
     </div>
 
 

@@ -29,6 +29,10 @@ module.exports = {
                     focusDown: 13,
                     snapCTO: 3
                 },
+                analogButtons: {
+                    faster: 7,
+                    slower: 6
+                },
                 axesDirections: {
                     x: 1,
                     y: -1,
@@ -56,6 +60,10 @@ module.exports = {
                     focusUp: 12,
                     focusDown: 13,
                     snapCTO: 3
+                },
+                analogButtons: {
+                    faster: 7,
+                    slower: 6
                 },
                 axesDirections: {
                     x: 1,

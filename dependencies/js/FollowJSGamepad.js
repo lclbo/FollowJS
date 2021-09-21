@@ -1,8 +1,9 @@
 class FollowJSGamepad {
-    constructor(gamepadObject) {
+    constructor(gamepadObject, spot) {
         this.id = gamepadObject.id;
         this.currentState = gamepadObject;
         this.lastState = gamepadObject;
+        this.assignedSpot = spot;
         // this.lastUpdate = performance.now();
     }
 
