@@ -13,8 +13,8 @@ const FollowJSGamepad = require('./dependencies/js/FollowJSGamepad.js');
 const FollowJSSpot = require('./dependencies/js/FollowJSSpot');
 
 let artnetSenderA = dmxnet.newSender({
-    ip: '127.0.0.1',
-    // ip: '192.168.2.255',
+    // ip: '127.0.0.1',
+    ip: '192.168.2.255',
     subnet: 15,
     universe: 15,
     net: 0,
@@ -70,8 +70,8 @@ let gamepadControlConfig1 = {
 
 let spot1config = {
     home: {
-        x: 0.158,
-        y: 0.815,
+        x: 0.15874274489947998,
+        y: 0.7949789885578629,
         r: 0.1,
         frost: 0.0,
         focus: 0.0,
@@ -142,8 +142,8 @@ let gamepadControlConfig2 = {
 
 let spot2config = {
     home: {
-        x: 0.158,
-        y: 0.815,
+        x: 0.1744328870405229,
+        y: 0.7922748391056202,
         r: 0.1,
         frost: 0.0,
         focus: 0.0,
@@ -176,8 +176,8 @@ let spot2config = {
         regression: {
             x: [-2,4,2],
             y: [-2,4,2],
-            a: [5.286352926885731,1.981207700475367,-12.764361971304451,6.003048675340111,0.564190685307892,6.794904917219276],
-            b: [-12.494361861164977,10.175014410577490,23.724021055412220,-3.896502665160901,-19.900537415046180,-10.311334885879367]
+            a: [-4.512185309196076,0.617278171101228,10.264803193293040,7.664305702100285,0.611541786191553,-6.833271061887547],
+            b: [-12.342455707812663,2.664199510752062,24.854793800608206,5.915651056182894,-21.524329487172768,-11.962219725826852]
         }
     },
     connection: {
@@ -189,8 +189,8 @@ let spot2config = {
 }
 
 
-let spot1 = new FollowJSSpot(fixtureLib.alphaBeam1500, spot1config, {keyboard: keyboardControlConfig1, gamepad: gamepadControlConfig1}, artnetSenderA);
-let spot2 = new FollowJSSpot(fixtureLib.alphaBeam1500, spot2config, {keyboard: keyboardControlConfig2, gamepad: gamepadControlConfig2}, artnetSenderA);
+let spot1 = new FollowJSSpot(1,fixtureLib.alphaBeam1500, spot1config, {keyboard: keyboardControlConfig1, gamepad: gamepadControlConfig1}, artnetSenderA);
+let spot2 = new FollowJSSpot(2,fixtureLib.alphaBeam1500, spot2config, {keyboard: keyboardControlConfig2, gamepad: gamepadControlConfig2}, artnetSenderA);
 
 
 spots[1] = spot1;
@@ -295,14 +295,10 @@ function printDMX() {
 function printGauges() {
     spots.forEach(function(spotRef, spotNumber) {
         document.getElementById("gauge["+spotNumber+"][dim]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.dim] / 255 * 100).toString() + "%";
-        document.getElementById("gauge["+spotNumber+"][color]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.colorWheel] / 255 * 100).toString() + "%";
+        document.getElementById("gauge["+spotNumber+"][color]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.colorWheel] / 110 * 100).toString() + "%";
         document.getElementById("gauge["+spotNumber+"][focus]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.focus] / 255 * 100).toString() + "%";
         document.getElementById("gauge["+spotNumber+"][frost]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.frost] / 255 * 100).toString() + "%";
     });
-    // document.getElementById("gauge["+spotNumber+"][dim]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.dim] / 255 * 100).toString() + "%";
-    // document.getElementById("gauge["+spotNumber+"][color]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.colorWheel] / 255 * 100).toString() + "%";
-    // document.getElementById("gauge["+spotNumber+"][focus]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.focus] / 255 * 100).toString() + "%";
-    // document.getElementById("gauge["+spotNumber+"][frost]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.frost] / 255 * 100).toString() + "%";
 }
 
 // function sendDMX() {
@@ -332,14 +328,26 @@ function drawSpots() {
 
         let pos_r = spot.state.r;
 
+        let opacity = (spot.state.shutterOpen === true) ? "0.4" : "0";
+
         let spotMarkerElement = document.getElementById("spotMarker["+spotNumber+"]");
-        spotMarkerElement.style.top = ((1-pos_y) * y_img_max).toString();
-        spotMarkerElement.style.left = (pos_x * x_img_max).toString();
+        spotMarkerElement.style.top = ((1-pos_y) * y_img_max).toString()+"px";
+        // spotMarkerElement.style.left = (pos_x * (document.getElementById("webcamDrawArea").offsetWidth)).toString()+"px";
+        spotMarkerElement.style.left = (pos_x * x_img_max).toString()+"px";
         spotMarkerElement.firstElementChild.setAttribute("r", (pos_r*(r_img_max-r_img_min)+r_img_min).toString());
+        spotMarkerElement.firstElementChild.setAttribute("fill-opacity", opacity);
 
         //document.querySelector("#coordLabel1").innerHTML = "("+spot.state.x.toPrecision(2)+"|"+spot.state.y.toPrecision(2)+")";
         //document.querySelector("#radiusLabel1").innerHTML = "r="+spot.state.r.toPrecision(3);
     });
+}
+
+function updateWindowSize() {
+    x_img_max = document.getElementById("webcamDrawArea").offsetWidth;
+    y_img_max = document.getElementById("webcamDrawArea").offsetHeight;
+
+    r_img_min = 10 * (document.getElementById("webcamDrawArea").offsetWidth / 800);
+    r_img_max = 50 * (document.getElementById("webcamDrawArea").offsetWidth / 800);
 }
 
 function enableCaptureKeyboard() {
@@ -385,13 +393,60 @@ function keyboardInputCallback(e) {
     });
 }
 
+function drawContextMenus() {
+    spots.forEach(function(spot, spotNo) {
+        });
+}
+
+function toggleContextMenu(spotNo) {
+    let spot = spots[spotNo];
+
+    let spotContextMenuElement = document.getElementById("spotContextMenu["+spotNo+"]");
+
+    if(spot.contextMenuState.visible !== false) {
+        spot.contextMenuState.visible = false;
+        spotContextMenuElement.innerHTML = "";
+    }
+    else {
+        spot.contextMenuState.visible = true;
+        spotContextMenuElement.innerHTML = "";
+        let x = spot.state.x;
+        let y = spot.state.y;
+        let x2 = Math.pow(x,2);
+        let y2 = Math.pow(y,2);
+
+        let pos_x = spot.config.translation.regression.a[0] + (spot.config.translation.regression.a[1] * x) + (spot.config.translation.regression.a[2] * y) + (spot.config.translation.regression.a[3] * x * y) + (spot.config.translation.regression.a[4] * x2) + (spot.config.translation.regression.a[5] * y2);
+        let pos_y = spot.config.translation.regression.b[0] + (spot.config.translation.regression.b[1] * x) + (spot.config.translation.regression.b[2] * y) + (spot.config.translation.regression.b[3] * x * y) + (spot.config.translation.regression.b[4] * x2) + (spot.config.translation.regression.b[5] * y2);
+
+        spotContextMenuElement.innerHTML = "";
+
+        let translate_y = ((1-pos_y) > 0.65) ? "-100%" : "0";
+        let translate_x = (pos_x > 0.75) ? "-100%" : "0";
+        spotContextMenuElement.style.transform = "translate("+translate_x+","+translate_y+")";
+
+        spotContextMenuElement.style.top = ((1-pos_y) * y_img_max).toString()+"px";
+        spotContextMenuElement.style.left = (pos_x * x_img_max).toString()+"px";
+
+        for(const [key, macro] of Object.entries(spot.fixture.dmx.macros)) {
+            document.getElementById("spotContextMenu["+spotNo+"]").insertAdjacentHTML("afterbegin", '<div class="col px-2 text-decoration-underline" id="macroButton['+spotNo+']['+key+']" onclick="executeMacro('+spotNo+',\''+key+'\')"><span class="spinner-grow spinner-grow-sm hiddenVis" role="status"></span>&nbsp;'+macro.short+'</div>');
+        }
+        spotContextMenuElement.insertAdjacentHTML("beforeend", '<div class="col px-2" id="calib['+spotNo+']">Calibrate</div>');
+        // spotContextMenuElement.insertAdjacentHTML("afterbegin", '<div class="col px-2" id="close['+spotNo+']">Close</div>');
+        spotContextMenuElement.insertAdjacentHTML("afterbegin", '<div class="col px-2 border-bottom fw-bold" id="calib['+spotNo+']">Spot #'+spotNo+'</div>');
+    }
+}
+
+function hideContextMenu(spotNo) {
+    let spotContextMenuElement = document.getElementById("spotContextMenu["+spotNo+"]");
+    spotContextMenuElement.innerHTML = "";
+}
 
 function drawMacroButtons() {
     document.querySelector("#macroList").innerHTML = "";
     spots.forEach(function(spot, spotNo) {
         document.getElementById("macroList").insertAdjacentHTML("beforeend", "<div></div>");
         for(const [key, macro] of Object.entries(spot.fixture.dmx.macros)) {
-            document.getElementById("macroList").lastElementChild.insertAdjacentHTML("beforeend", '<button type="button" id="macroButton['+spotNo+']['+key+']" onclick="executeMacro('+spotNo+',\''+key+'\')" class="btn btn-outline-success" title="'+macro.name+'"><span class="spinner-grow spinner-grow-sm hiddenVis" role="status"></span>&nbsp;'+macro.short+' '+spotNo+'</button>')
+            document.getElementById("macroList").lastElementChild.insertAdjacentHTML("beforeend", '<button type="button" id="macroButton['+spotNo+']['+key+']" onclick="executeMacro('+spotNo+',\''+key+'\')" class="btn btn-outline-success" title="'+macro.name+'"><span class="spinner-grow spinner-grow-sm hiddenVis" role="status"></span>&nbsp;'+macro.short+' '+spotNo+'</button>');
         }
     });
 }
@@ -596,17 +651,6 @@ function gamepadReadAxes() {
             gamepadObject.assignedSpot.resizeSpot(moveR);
         }
 
-        // // Frost
-        // let pad1axisFrost = gamepadObject.currentState.axes[gamepadObject.assignedSpot.control.gamepad.mapping.axes.frost];
-        // let absFrost = Math.abs(pad1axisFrost);
-        // let dirFrost = Math.sign(pad1axisFrost);
-        // let pad1moveFrost = ((absFrost > gamepadObject.assignedSpot.control.gamepad.config.deadZones.other) ? ((absFrost-gamepadObject.assignedSpot.control.gamepad.config.deadZones.other)/(1-gamepadObject.assignedSpot.control.gamepad.config.deadZones.other)*dirFrost) : 0);
-        // if(pad1moveFrost !== 0) {
-        //     let moveFrost = Math.sign(gamepadObject.assignedSpot.control.gamepad.mapping.axesDirections.frost) * pad1moveFrost * gamepadObject.assignedSpot.control.gamepad.config.modifier * gamepadObject.assignedSpot.config.increment.frost;
-        //
-        //     gamepadObject.assignedSpot.frostSpot(moveFrost);
-        // }
-
         // Dimmer
         let pad1axisDim = gamepadObject.currentState.axes[gamepadObject.assignedSpot.control.gamepad.mapping.axes.dim];
         let absDim = Math.abs(pad1axisDim);
@@ -630,12 +674,12 @@ function gamepadReadButtons() {
                         case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.snap:
                             gamepadObject.assignedSpot.snapSpot();
                             break;
-                        case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.calibrate:
-                            console.log("calib");
-                            if(calibrationActive === false)
-                                initCalibration(gamepadObject.assignedSpot);
-                            else
-                                skipCalibrationPoint();
+                        case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.home:
+                            gamepadObject.assignedSpot.homeSpot();
+                            // if(calibrationActive === false)
+                            //     initCalibration(gamepadObject.assignedSpot);
+                            // else
+                            //     skipCalibrationPoint();
                             break;
                         case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.storeCalibrationPoint:
                             if(calibrationActive)
@@ -649,6 +693,9 @@ function gamepadReadButtons() {
                             break;
                         case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.snapCTO:
                             gamepadObject.assignedSpot.snapToCTO();
+                            break;
+                        case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.contextMenu:
+                            toggleContextMenu(gamepadObject.assignedSpot.spotNumber);
                             break;
                     }
                 }
@@ -667,8 +714,6 @@ function gamepadReadButtons() {
                         case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.frostDown:
                             gamepadObject.assignedSpot.frostSpot(-1 * gamepadObject.assignedSpot.config.increment.frost * gamepadObject.assignedSpot.control.gamepad.config.modifier)
                             break;
-                        // case gamepadObject.assignedSpot.control.gamepad.mapping.analogButtons.faster:
-                        //     gamepadObject.assignedSpot.
                     }
                 }
             }
@@ -684,6 +729,8 @@ $(function() {
     // ready function
     conditionalLog("execute ready function");
 
+    updateWindowSize();
+
     initializeResources();
     startRefresh();
 
@@ -694,10 +741,10 @@ $(function() {
 
     enableGamepadConnectionEventListeners();
 
-    drawMacroButtons();
+    // drawMacroButtons();
     prepareDMXTable();
 
-    spots.forEach(function(spot, spotNo) {
-        spot.homeSpot();
-    });
+    // spots.forEach(function(spot, spotNo) {
+    //     spot.homeSpot();
+    // });
 });

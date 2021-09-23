@@ -14,7 +14,7 @@
     <script src="dependencies/js/lib/jquery-3.6.0.js"></script>
     <title>Follow Spot Control</title>
 </head>
-<body>
+<body onresize="updateWindowSize()">
     <div class="settingsFooter fixed-bottom float-right hidden">
         <div id="settingsFooterContent" class="d-flex flex-column text-center settingsContent text-dark">
             <div class="pt-1">
@@ -42,67 +42,75 @@
     <div class="container-fluid bg-dark align-content-center align-items-center text-center">
         <div id="webcamDrawArea">
             <div id="controllerConnectOverlay" class="cameraImageHugeWarningTextOverlay">connect or move controller</div>
-<!--            <img src="//:0" id="webcam" alt="Camera image will be here" class="refresh" data-rscIndex="1" data-defaultPrescale="2" data-path="http://192.168.0.225:8765/picture/1/current/">-->
-            <img src="placeholder.jpeg" id="webcam">
-            <svg height="450" width="800" class="gridOverlay hidden" id="tenthGridOverlay">
-                <line x1="0" y1="0" x2="800" y2="450" stroke="orange"></line>
-                <line x1="0" y1="450" x2="800" y2="0" stroke="orange"></line>
+            <img src="//:0" id="webcam" alt="Camera image will be here" class="refresh" data-rscIndex="1" data-defaultPrescale="2" data-path="http://192.168.0.225:8765/picture/1/current/">
+<!--            <img src="placeholder.jpeg" id="webcam">-->
+            <svg height="100%" width="100%" class="gridOverlay hidden" id="tenthGridOverlay">
+                <line x1="0" y1="0" x2="100%" y2="100%" stroke="orange"></line>
+                <line x1="0" y1="100%" x2="100%" y2="0" stroke="orange"></line>
 
-                <line x1="0" y1="45" x2="800" y2="45" stroke="green"></line>
-                <line x1="0" y1="90" x2="800" y2="90" stroke="green"></line>
-                <line x1="0" y1="135" x2="800" y2="135" stroke="green"></line>
-                <line x1="0" y1="180" x2="800" y2="180" stroke="green"></line>
-                <line x1="0" y1="225" x2="800" y2="225" stroke="green"></line>
-                <line x1="0" y1="270" x2="800" y2="270" stroke="green"></line>
-                <line x1="0" y1="315" x2="800" y2="315" stroke="green"></line>
-                <line x1="0" y1="360" x2="800" y2="360" stroke="green"></line>
-                <line x1="0" y1="405" x2="800" y2="405" stroke="green"></line>
+                <line x1="0" y1="10%" x2="100%" y2="10%" stroke="green"></line>
+                <line x1="0" y1="20%" x2="100%" y2="20%" stroke="green"></line>
+                <line x1="0" y1="30%" x2="100%" y2="30%" stroke="green"></line>
+                <line x1="0" y1="40%" x2="100%" y2="40%" stroke="green"></line>
+                <line x1="0" y1="50%" x2="100%" y2="50%" stroke="green"></line>
+                <line x1="0" y1="60%" x2="100%" y2="60%" stroke="green"></line>
+                <line x1="0" y1="70%" x2="100%" y2="70%" stroke="green"></line>
+                <line x1="0" y1="80%" x2="100%" y2="80%" stroke="green"></line>
+                <line x1="0" y1="90%" x2="100%" y2="90%" stroke="green"></line>
 
-                <line x1="80" y1="0" x2="80" y2="450" stroke="green"></line>
-                <line x1="160" y1="0" x2="160" y2="450" stroke="green"></line>
-                <line x1="240" y1="0" x2="240" y2="450" stroke="green"></line>
-                <line x1="320" y1="0" x2="320" y2="450" stroke="green"></line>
-                <line x1="400" y1="0" x2="400" y2="450" stroke="green"></line>
-                <line x1="480" y1="0" x2="480" y2="450" stroke="green"></line>
-                <line x1="560" y1="0" x2="560" y2="450" stroke="green"></line>
-                <line x1="640" y1="0" x2="640" y2="450" stroke="green"></line>
-                <line x1="720" y1="0" x2="720" y2="450" stroke="green"></line>
+                <line x1="10%" y1="0" x2="10%" y2="450" stroke="green"></line>
+                <line x1="20%" y1="0" x2="20%" y2="450" stroke="green"></line>
+                <line x1="30%" y1="0" x2="30%" y2="450" stroke="green"></line>
+                <line x1="40%" y1="0" x2="40%" y2="450" stroke="green"></line>
+                <line x1="50%" y1="0" x2="50%" y2="450" stroke="green"></line>
+                <line x1="60%" y1="0" x2="60%" y2="450" stroke="green"></line>
+                <line x1="70%" y1="0" x2="70%" y2="450" stroke="green"></line>
+                <line x1="80%" y1="0" x2="80%" y2="450" stroke="green"></line>
+                <line x1="90%" y1="0" x2="90%" y2="450" stroke="green"></line>
             </svg>
-            <svg height="100" width="100" class="spotMarker" id="spotMarker[1]">
-                <circle cx="50" cy="50" r="50" fill="purple" fill-opacity=".4" />
+
+            <svg class="spotMarker" id="spotMarker[1]">
+                <circle cx="50%" cy="50%" r="50" fill="purple" stroke="purple" stroke-opacity="1" fill-opacity=".4" />
             </svg>
-            <svg height="100" width="100" class="spotMarker" id="spotMarker[2]">
-                <circle cx="50" cy="50" r="50" fill="yellow" fill-opacity=".4" />
+            <svg class="spotMarker" id="spotMarker[2]">
+                <circle cx="50%" cy="50%" r="50" fill="yellow" stroke="yellow" stroke-opacity="1" fill-opacity=".4" />
             </svg>
             <svg height="50" width="50" class="spotMarker hidden" id="highlightMarker">
-                <circle cx="25" cy="25" r="25" stroke="blue" stroke-width="2" fill="none" />
-                <circle cx="25" cy="25" r="5" fill="blue" fill-opacity=".4" />
+                <circle cx="50%" cy="50%" r="25" stroke="blue" stroke-width="2" fill="none" />
+                <circle cx="50%" cy="50%" r="5" fill="blue" fill-opacity=".4" />
             </svg>
-            <div class="spotStatusOverlayTable">
-                <div class="spotStatusGauge" id="gauge[1][dim]">
-                    <div class="spotStatusOverlayDim">Dimmer</div>
-                </div>
-                <div class="spotStatusGauge" id="gauge[1][color]">
-                    <div class="spotStatusOverlayColor">Color</div>
-                </div>
-                <div class="spotStatusGauge" id="gauge[1][focus]">
-                    <div class="spotStatusOverlayFocus">Focus</div>
-                </div>
-                <div class="spotStatusGauge" id="gauge[1][frost]">
-                    <div class="spotStatusOverlayFrost">Frost</div>
-                </div>
 
-                <div class="spotStatusGauge" id="gauge[2][dim]">
-                    <div class="spotStatusOverlayDim">Dimmer</div>
+            <div class="spotContextMenu row-cols-1" id="spotContextMenu[1]"></div>
+            <div class="spotContextMenu row-cols-1" id="spotContextMenu[2]"></div>
+
+            <div class="spotStatusOverlayArea row align-items-start">
+                <div class="spotStatusOverlayGroup col p-0 mx-2">
+                    <div class="spotStatusGauge" id="gauge[1][dim]">
+                        <div class="spotStatusOverlayDim">Dimmer</div>
+                    </div>
+                    <div class="spotStatusGauge" id="gauge[1][color]">
+                        <div class="spotStatusOverlayColor">Color</div>
+                    </div>
+                    <div class="spotStatusGauge" id="gauge[1][focus]">
+                        <div class="spotStatusOverlayFocus">Focus</div>
+                    </div>
+                    <div class="spotStatusGauge" id="gauge[1][frost]">
+                        <div class="spotStatusOverlayFrost">Frost</div>
+                    </div>
                 </div>
-                <div class="spotStatusGauge" id="gauge[2][color]">
-                    <div class="spotStatusOverlayColor">Color</div>
-                </div>
-                <div class="spotStatusGauge" id="gauge[2][focus]">
-                    <div class="spotStatusOverlayFocus">Focus</div>
-                </div>
-                <div class="spotStatusGauge" id="gauge[2][frost]">
-                    <div class="spotStatusOverlayFrost">Frost</div>
+                <div class="spotStatusOverlayGroup col p-0 mx-2">
+                    <div class="spotStatusGauge" id="gauge[2][dim]">
+                        <div class="spotStatusOverlayDim">Dimmer</div>
+                    </div>
+                    <div class="spotStatusGauge" id="gauge[2][color]">
+                        <div class="spotStatusOverlayColor">Color</div>
+                    </div>
+                    <div class="spotStatusGauge" id="gauge[2][focus]">
+                        <div class="spotStatusOverlayFocus">Focus</div>
+                    </div>
+                    <div class="spotStatusGauge" id="gauge[2][frost]">
+                        <div class="spotStatusOverlayFrost">Frost</div>
+                    </div>
                 </div>
             </div>
 
@@ -114,7 +122,7 @@
 
         <div id="downloadButtonLanding" class="fixed-bottom pb-5"></div>
 
-        <div class="container text-light text-start fixed-bottom">
+        <div class="container text-light text-end fixed-bottom">
             <table style="font-size: 0.6em;" id="dmxTable">
                 <thead id="dmxTableHeader"></thead>
                 <tbody id="dmxTableBody"></tbody>

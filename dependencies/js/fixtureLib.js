@@ -84,7 +84,7 @@ module.exports = {
                     hold: 10
                 }
             },
-            colorWheel: [0,19,37,55,74,92,110,128,192,255],
+            colorWheel: [0,19,37,55,74,92,110],
             channels: {
                 1: {name: 'Cyan', short: 'C', value: 0},
                 2: {name: 'Magenta', short: 'M', value: 0},

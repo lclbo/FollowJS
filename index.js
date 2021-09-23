@@ -12,7 +12,8 @@ async function createWindow () {
     },
     width: 850,
     height: 600,
-    titleBarStyle: 'hidden'
+    titleBarStyle: 'hidden',
+    fullscreen: true
   });
   // winRef.setAlwaysOnTop(true);
   winRef.loadURL(url.format({
@@ -21,7 +22,7 @@ async function createWindow () {
     slashes: true
   }));
 
-  winRef.openDevTools();
+  // winRef.openDevTools();
 
   winRef.on('closed', () => {
     winRef = null;

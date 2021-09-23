@@ -4,12 +4,19 @@
 class FollowJSSpot {
     /**
      * Create new Spot instance
+     * @param spotNumber number of the spot within the system (1,2,3,...). Must match spots[i]-Index
      * @param fixtureType fixtureLib entry
      * @param configObject spot configuration object
      * @param controlObject object with control configs for keyboard & gamepad
      * @param artnetSender ArtNet sender instance
      */
-    constructor(fixtureType, configObject, controlObject, artnetSender) {
+    constructor(spotNumber, fixtureType, configObject, controlObject, artnetSender) {
+        this.spotNumber = spotNumber;
+        this.contextMenuState = {
+            visible: false,
+            selectedIndex: 0
+        };
+
         this.fixture = fixtureType;
         this.config = configObject;
         this.control = controlObject;
@@ -21,9 +28,11 @@ class FollowJSSpot {
         this.dmxBuffer = [];
 
         for(const [chan,data] of Object.entries(this.fixture.dmx.channels)) {
-            console.log("set channel "+chan);
+            // console.log("set channel "+chan);
             this.dmxBuffer[chan] = data.value;
         }
+
+        this.homeSpot();
     }
     sendDMX() {
         this.artnetSender.setChannels(this.config.connection.address, this.dmxBuffer);
@@ -66,22 +75,13 @@ class FollowJSSpot {
         });
     }
 
-    modifyVelocity(value) {
-        if(value > 0) {
-            //faster movement
-
-        }
-        else if(value < 0) {
-            //slower movement
-
-        }
-    }
     moveSpot(dX, dY) {
         if (dX !== 0)
             this.state.x = Math.min(Math.max(this.state.x + dX, this.config.boundaries.x.min), this.config.boundaries.x.max);
         if (dY !== 0)
             this.state.y = Math.min(Math.max(this.state.y + dY, this.config.boundaries.y.min), this.config.boundaries.y.max);
 
+        // console.log("Spot "+this.spotNumber+": x: "+this.state.x+", y: "+this.state.y);
         // this.positionToDMX()
 
         const _this=this;
@@ -152,6 +152,8 @@ class FollowJSSpot {
     snapToCTO() {
         this.state.CTOin = (this.state.CTOin === false);
 
+        if(this.state.CTOin === false)
+            this.state.colorWheelIndex = 0;
         // this.stateToDMX();
 
         const _this=this;

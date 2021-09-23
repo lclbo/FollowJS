@@ -21,13 +21,14 @@ module.exports = {
                     frostUp: 5,
                     frostDown: 4,
                     snap: 11,
-                    calibrate: 16,
+                    home: 16,
                     storeCalibrationPoint: 0,
                     colorWheelNext: 15,
                     colorWheelPrev: 14,
                     focusUp: 12,
                     focusDown: 13,
-                    snapCTO: 3
+                    snapCTO: 3,
+                    contextMenu: 9
                 },
                 analogButtons: {
                     faster: 7,
@@ -53,13 +54,14 @@ module.exports = {
                     frostUp: 5,
                     frostDown: 4,
                     snap: 10,
-                    calibrate: 16,
+                    home: 16,
                     storeCalibrationPoint: 0,
                     colorWheelNext: 15,
                     colorWheelPrev: 14,
                     focusUp: 12,
                     focusDown: 13,
-                    snapCTO: 3
+                    snapCTO: 3,
+                    contextMenu: 9
                 },
                 analogButtons: {
                     faster: 7,
