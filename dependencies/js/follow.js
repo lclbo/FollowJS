@@ -14,7 +14,8 @@ const FollowJSSpot = require('./dependencies/js/FollowJSSpot');
 
 let artnetSenderA = dmxnet.newSender({
     // ip: '127.0.0.1',
-    ip: '192.168.2.255',
+    // ip: '192.168.2.255',
+    ip: '10.0.20.255',
     subnet: 15,
     universe: 15,
     net: 0,
@@ -36,15 +37,13 @@ let calibrateSpotRef = undefined;
 let calibrationValues = new Array(9*9);
 let calibrationStep = 1;
 
-
 let x_img_max = 800;
 let y_img_max = 450;
-let r_img_min = 10;
-let r_img_max = 30;
+let r_img_min = 8;
+let r_img_max = 25;
 
 let connectedGamepads = new Array(4);
 let spots = [];
-
 
 let keyboardControlConfig1 = {
     config: {
@@ -72,8 +71,8 @@ let spot1config = {
     home: {
         x: 0.15874274489947998,
         y: 0.7949789885578629,
-        r: 0.1,
-        frost: 0.0,
+        r: 0.0,
+        frost: 1.0,
         focus: 0.0,
         dim: 1.0,
         shutterOpen: false,
@@ -91,7 +90,7 @@ let spot1config = {
     boundaries: {
         x: {min: 0.0, max: 1.0},
         y: {min: 0.0, max: 1.0},
-        r: {min: 0.05, max: 1.0},
+        r: {min: 0.0, max: 1.0},
         frost: {min: 0.0, max: 1.0},
         focus: {min: 0.0, max: 1.0},
         dim: {min: 0.0, max: 1.0}
@@ -116,8 +115,8 @@ let spot1config = {
     }
 }
 
-// SPOT 2
 
+// SPOT 2
 let keyboardControlConfig2 = {
     config: {
         modifier: 0.001
@@ -144,8 +143,8 @@ let spot2config = {
     home: {
         x: 0.1744328870405229,
         y: 0.7922748391056202,
-        r: 0.1,
-        frost: 0.0,
+        r: 0.0,
+        frost: 1.0,
         focus: 0.0,
         dim: 1.0,
         shutterOpen: false,
@@ -192,15 +191,15 @@ let spot2config = {
 let spot1 = new FollowJSSpot(1,fixtureLib.alphaBeam1500, spot1config, {keyboard: keyboardControlConfig1, gamepad: gamepadControlConfig1}, artnetSenderA);
 let spot2 = new FollowJSSpot(2,fixtureLib.alphaBeam1500, spot2config, {keyboard: keyboardControlConfig2, gamepad: gamepadControlConfig2}, artnetSenderA);
 
-
 spots[1] = spot1;
 spots[2] = spot2;
 
-function initCalibration(spotRef) {
+
+function initCalibration(spotNo) {
     console.log("init calibration");
     calibrationActive = true;
     calibrationStep = 1;
-    calibrateSpotRef = spotRef;
+    calibrateSpotRef = spots[spotNo];
     showGridOverlay();
     showCalibrationPoint();
 }
@@ -317,7 +316,7 @@ function drawIntervalCallback() {
 }
 
 function drawSpots() {
-    spots.forEach(function(spot, spotNumber) {
+    spots.forEach(function(spot, spotNo) {
         let x = spot.state.x;
         let y = spot.state.y;
         let x2 = Math.pow(spot.state.x,2);
@@ -330,12 +329,15 @@ function drawSpots() {
 
         let opacity = (spot.state.shutterOpen === true) ? "0.4" : "0";
 
-        let spotMarkerElement = document.getElementById("spotMarker["+spotNumber+"]");
+        let spotMarkerElement = document.getElementById("spotMarker["+spotNo+"]");
         spotMarkerElement.style.top = ((1-pos_y) * y_img_max).toString()+"px";
         // spotMarkerElement.style.left = (pos_x * (document.getElementById("webcamDrawArea").offsetWidth)).toString()+"px";
         spotMarkerElement.style.left = (pos_x * x_img_max).toString()+"px";
         spotMarkerElement.firstElementChild.setAttribute("r", (pos_r*(r_img_max-r_img_min)+r_img_min).toString());
         spotMarkerElement.firstElementChild.setAttribute("fill-opacity", opacity);
+
+        if(spot.contextMenuState.visible === true)
+            updateContextMenu(spotNo);
 
         //document.querySelector("#coordLabel1").innerHTML = "("+spot.state.x.toPrecision(2)+"|"+spot.state.y.toPrecision(2)+")";
         //document.querySelector("#radiusLabel1").innerHTML = "r="+spot.state.r.toPrecision(3);
@@ -347,7 +349,7 @@ function updateWindowSize() {
     y_img_max = document.getElementById("webcamDrawArea").offsetHeight;
 
     r_img_min = 10 * (document.getElementById("webcamDrawArea").offsetWidth / 800);
-    r_img_max = 50 * (document.getElementById("webcamDrawArea").offsetWidth / 800);
+    r_img_max = 30 * (document.getElementById("webcamDrawArea").offsetWidth / 800);
 }
 
 function enableCaptureKeyboard() {
@@ -393,9 +395,47 @@ function keyboardInputCallback(e) {
     });
 }
 
-function drawContextMenus() {
-    spots.forEach(function(spot, spotNo) {
-        });
+function drawContextMenu(spotNo) {
+    let spot = spots[spotNo];
+    let spotContextMenuElement = document.getElementById("spotContextMenu["+spotNo+"]");
+
+    spot.fixture.dmx.macros.forEach(function(macro,key) {
+        let selectClass = "";
+        if(key === spot.contextMenuState.selectedIndex)
+            selectClass = "spotContextMenuHighlight";
+
+        document.getElementById("spotContextMenu["+spotNo+"]").insertAdjacentHTML("beforeend", '<div class="col px-2 '+selectClass+'" id="macroButton['+spotNo+']['+key+']" onclick="executeMacro('+spotNo+','+key+')"><span class="spinner-grow spinner-grow-sm hiddenVis" role="status"></span>&nbsp;'+macro.short+'</div>');
+    });
+
+    spotContextMenuElement.insertAdjacentHTML("beforeend", '<div class="col px-2" id="calib['+spotNo+']" onclick="initCalibration('+spotNo+')">Calibrate</div>');
+    // spotContextMenuElement.insertAdjacentHTML("afterbegin", '<div class="col px-2" id="close['+spotNo+']">Close</div>');
+    spotContextMenuElement.insertAdjacentHTML("afterbegin", '<div class="col px-2 border-bottom fw-bold" id="calib['+spotNo+']">Spot #'+spotNo+'</div>');
+}
+
+function updateContextMenu(spotNo) {
+    let spot = spots[spotNo];
+    let spotContextMenuElement = document.getElementById("spotContextMenu["+spotNo+"]");
+
+    let x = spot.state.x;
+    let y = spot.state.y;
+    let x2 = Math.pow(x,2);
+    let y2 = Math.pow(y,2);
+
+    let pos_x = spot.config.translation.regression.a[0] + (spot.config.translation.regression.a[1] * x) + (spot.config.translation.regression.a[2] * y) + (spot.config.translation.regression.a[3] * x * y) + (spot.config.translation.regression.a[4] * x2) + (spot.config.translation.regression.a[5] * y2);
+    let pos_y = spot.config.translation.regression.b[0] + (spot.config.translation.regression.b[1] * x) + (spot.config.translation.regression.b[2] * y) + (spot.config.translation.regression.b[3] * x * y) + (spot.config.translation.regression.b[4] * x2) + (spot.config.translation.regression.b[5] * y2);
+
+    let translate_y = ((1-pos_y) > 0.65) ? "-100%" : "0";
+    let translate_x = (pos_x > 0.75) ? "-100%" : "0";
+    spotContextMenuElement.style.transform = "translate("+translate_x+","+translate_y+")";
+
+    spotContextMenuElement.style.top = ((1-pos_y) * y_img_max).toString()+"px";
+    spotContextMenuElement.style.left = (pos_x * x_img_max).toString()+"px";
+
+    spotContextMenuElement.childNodes.forEach(function (childElement) {
+        childElement.classList.remove("spotContextMenuHighlight");
+    });
+    document.getElementById('macroButton['+spotNo+']['+spot.contextMenuState.selectedIndex+']').classList.add("spotContextMenuHighlight");
+
 }
 
 function toggleContextMenu(spotNo) {
@@ -409,30 +449,9 @@ function toggleContextMenu(spotNo) {
     }
     else {
         spot.contextMenuState.visible = true;
-        spotContextMenuElement.innerHTML = "";
-        let x = spot.state.x;
-        let y = spot.state.y;
-        let x2 = Math.pow(x,2);
-        let y2 = Math.pow(y,2);
-
-        let pos_x = spot.config.translation.regression.a[0] + (spot.config.translation.regression.a[1] * x) + (spot.config.translation.regression.a[2] * y) + (spot.config.translation.regression.a[3] * x * y) + (spot.config.translation.regression.a[4] * x2) + (spot.config.translation.regression.a[5] * y2);
-        let pos_y = spot.config.translation.regression.b[0] + (spot.config.translation.regression.b[1] * x) + (spot.config.translation.regression.b[2] * y) + (spot.config.translation.regression.b[3] * x * y) + (spot.config.translation.regression.b[4] * x2) + (spot.config.translation.regression.b[5] * y2);
-
-        spotContextMenuElement.innerHTML = "";
-
-        let translate_y = ((1-pos_y) > 0.65) ? "-100%" : "0";
-        let translate_x = (pos_x > 0.75) ? "-100%" : "0";
-        spotContextMenuElement.style.transform = "translate("+translate_x+","+translate_y+")";
-
-        spotContextMenuElement.style.top = ((1-pos_y) * y_img_max).toString()+"px";
-        spotContextMenuElement.style.left = (pos_x * x_img_max).toString()+"px";
-
-        for(const [key, macro] of Object.entries(spot.fixture.dmx.macros)) {
-            document.getElementById("spotContextMenu["+spotNo+"]").insertAdjacentHTML("afterbegin", '<div class="col px-2 text-decoration-underline" id="macroButton['+spotNo+']['+key+']" onclick="executeMacro('+spotNo+',\''+key+'\')"><span class="spinner-grow spinner-grow-sm hiddenVis" role="status"></span>&nbsp;'+macro.short+'</div>');
-        }
-        spotContextMenuElement.insertAdjacentHTML("beforeend", '<div class="col px-2" id="calib['+spotNo+']">Calibrate</div>');
-        // spotContextMenuElement.insertAdjacentHTML("afterbegin", '<div class="col px-2" id="close['+spotNo+']">Close</div>');
-        spotContextMenuElement.insertAdjacentHTML("afterbegin", '<div class="col px-2 border-bottom fw-bold" id="calib['+spotNo+']">Spot #'+spotNo+'</div>');
+        spot.contextMenuState.selectedIndex = 0;
+        drawContextMenu(spotNo);
+        updateContextMenu(spotNo);
     }
 }
 
@@ -441,41 +460,31 @@ function hideContextMenu(spotNo) {
     spotContextMenuElement.innerHTML = "";
 }
 
-function drawMacroButtons() {
-    document.querySelector("#macroList").innerHTML = "";
-    spots.forEach(function(spot, spotNo) {
-        document.getElementById("macroList").insertAdjacentHTML("beforeend", "<div></div>");
-        for(const [key, macro] of Object.entries(spot.fixture.dmx.macros)) {
-            document.getElementById("macroList").lastElementChild.insertAdjacentHTML("beforeend", '<button type="button" id="macroButton['+spotNo+']['+key+']" onclick="executeMacro('+spotNo+',\''+key+'\')" class="btn btn-outline-success" title="'+macro.name+'"><span class="spinner-grow spinner-grow-sm hiddenVis" role="status"></span>&nbsp;'+macro.short+' '+spotNo+'</button>');
-        }
-    });
-}
-
-function executeMacro(spotNo, btnKey) {
+function executeMacro(spotNo, macroNo) {
     console.log("execute Macro: ");
     // try {
-        let macro = spots[spotNo].fixture.dmx.macros[btnKey];
+        let macro = spots[spotNo].fixture.dmx.macros[macroNo];
         // document.getElementById("macroButton["+btnKey+"]").classList.add("btn-success");
         // document.getElementById("macroButton["+btnKey+"]").classList.remove("btn-outline-success");
-        document.getElementById("macroButton["+spotNo+"]["+btnKey+"]").firstElementChild.classList.remove("hiddenVis");
-        document.getElementById("macroButton["+spotNo+"]["+btnKey+"]").disabled = true;
+        document.getElementById("macroButton["+spotNo+"]["+macroNo+"]").firstElementChild.classList.remove("hiddenVis");
+        // document.getElementById("macroButton["+spotNo+"]["+macroNo+"]").disabled = true;
         console.log(macro.name);
         let oldValue = spots[spotNo].dmxBuffer[macro.channel];
         spots[spotNo].dmxBuffer[macro.channel] = macro.value;
         spots[spotNo].sendDMX();
-        window.setTimeout(setChannelToValue, (Number.parseInt(macro.hold)*1000), spotNo, macro.channel, oldValue, btnKey);
+        window.setTimeout(setChannelToValue, (Number.parseInt(macro.hold)*1000), spotNo, macro.channel, oldValue, macroNo);
     // }
     // catch {
     //     console.log("no Macro of such name!");
     // }
 }
 
-function setChannelToValue(spotNo,chan,val,btnKey) {
+function setChannelToValue(spotNo,chan,val,macroNo) {
     spots[spotNo].dmxBuffer[chan] = val;
     // document.getElementById("macroButton["+btnKey+"]").classList.add("btn-outline-success");
     // document.getElementById("macroButton["+btnKey+"]").classList.remove("btn-success");
-    document.getElementById("macroButton["+spotNo+"]["+btnKey+"]").firstElementChild.classList.add("hiddenVis");
-    document.getElementById("macroButton["+spotNo+"]["+btnKey+"]").disabled = false;
+    document.getElementById("macroButton["+spotNo+"]["+macroNo+"]").firstElementChild.classList.add("hiddenVis");
+    // document.getElementById("macroButton["+spotNo+"]["+macroNo+"]").disabled = false;
     spots[spotNo].sendDMX();
 }
 
@@ -670,34 +679,46 @@ function gamepadReadButtons() {
             if (gamepadObject.currentState.buttons[index].pressed === true) {
                 if (gamepadObject.lastState.buttons[index].pressed === false) { //rising edge
                     console.log("(rising edge) press on button " + index);
-                    switch (index) {
-                        case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.snap:
-                            gamepadObject.assignedSpot.snapSpot();
-                            break;
-                        case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.home:
-                            gamepadObject.assignedSpot.homeSpot();
+
+                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.snap)
+                        gamepadObject.assignedSpot.snapSpot();
+
+                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.home)
+                        gamepadObject.assignedSpot.homeSpot();
                             // if(calibrationActive === false)
-                            //     initCalibration(gamepadObject.assignedSpot);
+                            //     initCalibration(gamepadObject.assignedSpot.spotNumber);
                             // else
                             //     skipCalibrationPoint();
-                            break;
-                        case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.storeCalibrationPoint:
-                            if(calibrationActive)
-                                storeCalibrationPoint();
-                            break;
-                        case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.colorWheelNext:
-                            gamepadObject.assignedSpot.rotateColorWheel(+1);
-                            break;
-                        case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.colorWheelPrev:
-                            gamepadObject.assignedSpot.rotateColorWheel(-1);
-                            break;
-                        case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.snapCTO:
-                            gamepadObject.assignedSpot.snapToCTO();
-                            break;
-                        case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.contextMenu:
-                            toggleContextMenu(gamepadObject.assignedSpot.spotNumber);
-                            break;
+                            // break;
+                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.storeCalibrationPoint) {
+                        if (calibrationActive)
+                            storeCalibrationPoint();
                     }
+                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.skipCalibrationPoint) {
+                        if (calibrationActive)
+                            skipCalibrationPoint();
+                    }
+
+                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.colorWheelNext)
+                        gamepadObject.assignedSpot.rotateColorWheel(+1);
+
+                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.colorWheelPrev)
+                        gamepadObject.assignedSpot.rotateColorWheel(-1);
+
+                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.snapCTO)
+                        gamepadObject.assignedSpot.snapToCTO();
+
+                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.contextMenuShow)
+                        toggleContextMenu(gamepadObject.assignedSpot.spotNumber);
+
+                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.contextMenuUp)
+                        gamepadObject.assignedSpot.scrollContextMenu(-1);
+
+                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.contextMenuDown)
+                        gamepadObject.assignedSpot.scrollContextMenu(1);
+
+                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.contextMenuSelect)
+                        executeMacro(gamepadObject.assignedSpot.spotNumber, gamepadObject.assignedSpot.contextMenuState.selectedIndex);
                 }
                 else { //continuous press
                     // console.log("still pressing button " + index);

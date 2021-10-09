@@ -174,6 +174,10 @@ class FollowJSSpot {
         });
         // this.sendDMX();
     }
+
+    scrollContextMenu(distance) {
+        this.contextMenuState.selectedIndex = (((this.contextMenuState.selectedIndex + distance) % this.fixture.dmx.macros.length) + this.fixture.dmx.macros.length) % this.fixture.dmx.macros.length;
+    }
 }
 
 module.exports = FollowJSSpot;

@@ -41,9 +41,9 @@
 
     <div class="container-fluid bg-dark align-content-center align-items-center text-center">
         <div id="webcamDrawArea">
-            <div id="controllerConnectOverlay" class="cameraImageHugeWarningTextOverlay">connect or move controller</div>
-            <img src="//:0" id="webcam" alt="Camera image will be here" class="refresh" data-rscIndex="1" data-defaultPrescale="2" data-path="http://192.168.0.225:8765/picture/1/current/">
-<!--            <img src="placeholder.jpeg" id="webcam">-->
+            <div id="controllerConnectOverlay" class="cameraImageHugeWarningTextOverlay">Waiting for controller…</div>
+            <img src="//:0" alt="Camera image will be here" class="refresh webcam" data-rscIndex="1" data-defaultPrescale="2" data-path="http://192.168.0.225:8765/picture/1/current/">
+            <img src="placeholder.jpeg" class="webcam">
             <svg height="100%" width="100%" class="gridOverlay hidden" id="tenthGridOverlay">
                 <line x1="0" y1="0" x2="100%" y2="100%" stroke="orange"></line>
                 <line x1="0" y1="100%" x2="100%" y2="0" stroke="orange"></line>
@@ -70,10 +70,11 @@
             </svg>
 
             <svg class="spotMarker" id="spotMarker[1]">
-                <circle cx="50%" cy="50%" r="50" fill="purple" stroke="purple" stroke-opacity="1" fill-opacity=".4" />
+                <circle cx="50%" cy="50%" r="50" fill="purple" stroke="purple" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" />
+<!--                <line x1="50%" y1="50%" x2="100%" y2="100%" stroke="purple"></line>-->
             </svg>
             <svg class="spotMarker" id="spotMarker[2]">
-                <circle cx="50%" cy="50%" r="50" fill="yellow" stroke="yellow" stroke-opacity="1" fill-opacity=".4" />
+                <circle cx="50%" cy="50%" r="50" fill="yellow" stroke="yellow" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" />
             </svg>
             <svg height="50" width="50" class="spotMarker hidden" id="highlightMarker">
                 <circle cx="50%" cy="50%" r="25" stroke="blue" stroke-width="2" fill="none" />
@@ -116,13 +117,10 @@
 
         </div>
         <div id="placeholderBG" style="height: 498px;"></div>
-        <div class="container mt-1">
-            <div id="macroList"></div>
-        </div>
 
         <div id="downloadButtonLanding" class="fixed-bottom pb-5"></div>
 
-        <div class="container text-light text-end fixed-bottom">
+        <div id="dmxFooter" class="text-light text-center fixed-bottom">
             <table style="font-size: 0.6em;" id="dmxTable">
                 <thead id="dmxTableHeader"></thead>
                 <tbody id="dmxTableBody"></tbody>

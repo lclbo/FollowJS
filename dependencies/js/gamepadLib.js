@@ -23,12 +23,16 @@ module.exports = {
                     snap: 11,
                     home: 16,
                     storeCalibrationPoint: 0,
+                    skipCalibrationPoint: 1,
                     colorWheelNext: 15,
                     colorWheelPrev: 14,
                     focusUp: 12,
                     focusDown: 13,
                     snapCTO: 3,
-                    contextMenu: 9
+                    contextMenuShow: 9,
+                    contextMenuUp: 12,
+                    contextMenuDown: 13,
+                    contextMenuSelect: 0
                 },
                 analogButtons: {
                     faster: 7,
@@ -56,12 +60,16 @@ module.exports = {
                     snap: 10,
                     home: 16,
                     storeCalibrationPoint: 0,
+                    skipCalibrationPoint: 1,
                     colorWheelNext: 15,
                     colorWheelPrev: 14,
                     focusUp: 12,
                     focusDown: 13,
                     snapCTO: 3,
-                    contextMenu: 9
+                    contextMenuShow: 9,
+                    contextMenuUp: 12,
+                    contextMenuDown: 13,
+                    contextMenuSelect: 0
                 },
                 analogButtons: {
                     faster: 7,

@@ -13,6 +13,7 @@ async function createWindow () {
     width: 850,
     height: 600,
     titleBarStyle: 'hidden',
+    autoHideMenuBar: true,
     fullscreen: true
   });
   // winRef.setAlwaysOnTop(true);

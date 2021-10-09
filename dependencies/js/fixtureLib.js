@@ -54,36 +54,12 @@ module.exports = {
                 frost: 14,
                 focus: 17
             },
-            macros: {
-                lampOn: {
-                    name: "Lamp On Full Power",
-                    short: "Lamp On",
-                    channel: 24,
-                    value: 255,
-                    hold: 10
-                },
-                lampHalf: {
-                    name: "Lamp to Half Power mode",
-                    short: "Lamp Half",
-                    channel: 24,
-                    value: 101,
-                    hold: 10
-                },
-                lampOff: {
-                    name: "Lamp Off after 5s",
-                    short: "Lamp Off",
-                    channel: 24,
-                    value: 100,
-                    hold: 10
-                },
-                resetPT: {
-                    name: "Reset Pan/Tilt only",
-                    short: "Reset P/T",
-                    channel: 23,
-                    value: 127,
-                    hold: 10
-                }
-            },
+            macros: [
+                {name: "Lamp On Full Power", short: "Lamp On", channel: 24, value: 255, hold: 10},
+                {name: "Lamp to Half Power mode", short: "Lamp Half", channel: 24, value: 101, hold: 10},
+                {name: "Lamp Off after 5s", short: "Lamp Off", channel: 24, value: 100, hold: 10},
+                {name: "Reset Pan/Tilt only", short: "Reset P/T", channel: 23, value: 127, hold: 10}
+            ],
             colorWheel: [0,19,37,55,74,92,110],
             channels: {
                 1: {name: 'Cyan', short: 'C', value: 0},

@@ -40,6 +40,7 @@
     line-height: 200px !important;
 }
 #titlebar {
+    display: none;
     position: fixed;
     top: 0;
     left: 0;
@@ -52,7 +53,7 @@
     -webkit-app-region: drag;
 }
 
-#webcam {
+.webcam {
     width: 100%;
     height: 100%;
 }
@@ -63,11 +64,12 @@
     width: 95vw;
     height: fit-content;
     aspect-ratio: 16/9;
-    border: 2px solid yellow;
+    border: .25rem solid #762551;
     box-sizing: border-box;
     overflow: hidden;
     position: absolute;
-    top: 48px;
+    /*top: 48px;*/
+    top: 2.5vw;
     left: 50%;
     transform: translate(-50%,0);
 }
@@ -91,16 +93,48 @@
 
 .cameraImageHugeWarningTextOverlay {
     position: absolute;
-    transform: translate(-50%,-50%);
+    /*transform: translate(-50%,-50%);*/
     top: 50%;
     left: 50%;
-    background: #AAAA0088;
-    animation: linear;
-    width: 80%;
-    font-size: 3rem;
+    /*background: #AAAA0088;*/
+    background-color: #762551AA;
+    /*color: #ced4da;*/
+    width: fit-content;
+    height: 5rem;
+    box-sizing: border-box;
+    font-family: sans-serif;
+    font-size: 2.5rem;
     text-align: center;
-    padding: 2rem;
+    padding: 1rem 2rem 1rem 2rem;
     z-index: 1000;
+    /*animation: myOrbit1 20s linear infinite, pulseAnimation 5s linear infinite;*/
+    animation: moveX 21s linear 0s infinite alternate, moveY 16s linear 0s infinite alternate;
+/*, moveY 21s linear 0s infinite alternate;*/
+}
+
+@keyframes myOrbit1 {
+    from { transform: rotate(0deg) translateX(150px) rotate(0deg) }
+    to   { transform: rotate(360deg) translateX(150px) rotate(-360deg) }
+}
+
+@keyframes myOrbit2 {
+    from { transform: rotate(0deg) translateX(-150px) translateY(150px) rotate(0deg) }
+    to   { transform: rotate(0deg) translateX(150px) translateY(-150px) rotate(0deg) }
+}
+
+@keyframes moveX {
+    from {left: 0%; transform: translateX(0);}
+    to {left: 100%; transform: translateX(-100%);}
+}
+@keyframes moveY {
+    from {top: 0%;}
+    to {top: calc(100% - 5rem);}
+}
+
+@keyframes pulseAnimation {
+    from { opacity: 1; }
+    50%  { opacity: 0.4; }
+    to   { opacity: 1; }
 }
 
 .spotContextMenu {
@@ -108,16 +142,19 @@
     /*transform: translate(0,0);*/
     top: 50%;
     left: 50%;
-    background-color: #ff4444BB;
+    background-color: #762551CC;
+    color: #cccccc;
     z-index: 900;
+    box-sizing: border-box;
 }
 
 .spotContextMenuHighlight {
     background-color: #ff0000ff;
-    border-left: 4px solid #ffaa00;
-    border-right: 4px solid #ffaa00;
+    /*border-left: 4px solid #ffaa00;*/
+    /*border-right: 4px solid #ffaa00;*/
     border-bottom: 2px solid #ffaa00;
     border-top: 2px solid #ffaa00;
+    margin: -2px 0 -2px 0;
 }
 
 .spotStatusOverlayArea {
@@ -126,13 +163,14 @@
     /*left: 500px;*/
     /*top: 75%;*/
     left: 50%;
-    top: calc(100% - 10px);
+    top: calc(100% - 5vh);
     z-index: 100;
 }
 
 .spotStatusOverlayGroup {
-    border: 2px solid yellow;
-    color: #dddddd;
+    /*border: 2px solid yellow;*/
+    border: .25rem solid #762551;
+    /*color: #dddddd;*/
 }
 
 .spotStatusGauge {
@@ -146,27 +184,17 @@
 }
 
 .spotStatusGauge div {
-    width: 150px;
+    width: 10rem;
+    height: fit-content;
     padding-left: 1rem;
+    padding-right: 1rem;
 }
 
 .spotStatusOverlayDim {
     background: linear-gradient(to right, #000000 0%, #FFFFFF 100%);
 }
-/*.spotStatusOverlayColor {*/
-/*    background: linear-gradient(to right, #ffffff 0%,*/
-/*    #FF0000 7.45%, #ff0000 10.58%,*/
-/*    #fcdf56 14.5%, #fcdf56 17.64%,*/
-/*    #04bb3d 21.57%, #04bb3d 24.7%,*/
-/*    #0ab7d7 29.02%, #0ab7d7 32.15%,*/
-/*    #ffaa00 36.08%, #ffaa00 39.21%,*/
-/*    #2f00cd 43.14%, #2f00cd 46.27%,*/
-/*    #ffffff 50%,*/
-/*    #000000 50.1%,*/
-/*    #000000 100%);*/
-/*}*/
+
 .spotStatusOverlayColor {
-    /*background: linear-gradient(to right, #ffffff 0%, #FFAA00FF 100%);*/
     background: linear-gradient(to right, #ffffff 0%,
     #FF0000 14.9%, #ff0000 21.16%,
     #fcdf56 29.0%, #fcdf56 35.28%,
@@ -181,4 +209,22 @@
 }
 .spotStatusOverlayFrost {
     background: linear-gradient(to right, #CCCCCCFF 0%, #CCCCCC22 100%);
+}
+
+#dmxFooter {
+    margin-bottom: 1em;
+    position: fixed;
+    transform: translate(-50%,0);
+    width: fit-content;
+    bottom: 0;
+    left: 50%;
+}
+
+#dmxTable {
+    color: #aaaaaa;
+}
+
+#dmxTableHeader {
+    font-weight: bold;
+    border-bottom: 1px solid grey;
 }
