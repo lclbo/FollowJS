@@ -286,7 +286,7 @@ function prepareDMXTable() {
 function printDMX() {
     spots.forEach(function(spot, spotNo) {
         for(const chan of Object.keys(spot.dmxBuffer)) {
-            document.getElementById("dmx["+spotNo+"]["+chan+"]").innerHTML = spot.dmxBuffer[chan];
+            document.getElementById("dmx["+spotNo+"]["+chan+"]").textContent = spot.dmxBuffer[chan];
         }
     });
 }
