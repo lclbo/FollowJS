@@ -1,4 +1,5 @@
 const dmxLib = require('./dependencies/js/libDmxArtNet');
+// import dmxLib from './dependencies/js/libDmxArtNet';
 const dmxArtNet = new dmxLib.DmxArtNet({
     oem: 0, //OEM Code from artisticlicense, default to dmxnet OEM.
     sName: "Follow.JS", // 17 char long node description, default to "dmxnet"
@@ -7,9 +8,14 @@ const dmxArtNet = new dmxLib.DmxArtNet({
 });
 
 const fixtureLib = require('./dependencies/js/fixtureLib');
-const gamepadLib =require('./dependencies/js/gamepadLib');
+const gamepadLib = require('./dependencies/js/gamepadLib');
 const FollowJSGamepad = require('./dependencies/js/FollowJSGamepad.js');
 const FollowJSSpot = require('./dependencies/js/FollowJSSpot');
+
+// import fixtureLib from './dependencies/js/fixtureLib';
+// import gamepadLib from './dependencies/js/gamepadLib';
+// import FollowJSGamepad from './dependencies/js/FollowJSGamepad.js';
+// import FollowJSSpot from './dependencies/js/FollowJSSpot';
 
 let artNetSenderA = dmxArtNet.newSender({
     // ip: '127.0.0.1',
@@ -46,6 +52,7 @@ let r_img_max = 25;
 let connectedGamepads = new Array(4);
 let spots = [];
 
+// SPOT 1
 let keyboardControlConfig1 = {
     config: {
         modifier: 0.001
@@ -62,12 +69,10 @@ let keyboardControlConfig1 = {
         smaller: "q"
     }
 }
-
 let gamepadControlConfig1 = {
     config: gamepadLib.xboxOneControllerDefault.config,
     mapping: gamepadLib.xboxOneControllerDefault.mapping.legacy
 }
-
 let spot1config = {
     home: {
         x: 0.15874274489947998,
@@ -116,7 +121,6 @@ let spot1config = {
     }
 }
 
-
 // SPOT 2
 let keyboardControlConfig2 = {
     config: {
@@ -134,12 +138,10 @@ let keyboardControlConfig2 = {
         smaller: "i"
     }
 }
-
 let gamepadControlConfig2 = {
     config: gamepadLib.xboxOneControllerDefault.config,
     mapping: gamepadLib.xboxOneControllerDefault.mapping.legacy
 }
-
 let spot2config = {
     home: {
         x: 0.1744328870405229,
@@ -188,12 +190,8 @@ let spot2config = {
     }
 }
 
-
-let spot1 = new FollowJSSpot(1,fixtureLib.alphaBeam1500, spot1config, {keyboard: keyboardControlConfig1, gamepad: gamepadControlConfig1}, artNetSenderA);
-let spot2 = new FollowJSSpot(2,fixtureLib.alphaBeam1500, spot2config, {keyboard: keyboardControlConfig2, gamepad: gamepadControlConfig2}, artNetSenderA);
-
-spots[1] = spot1;
-spots[2] = spot2;
+spots[1] = new FollowJSSpot(1,fixtureLib.alphaBeam1500, spot1config, {keyboard: keyboardControlConfig1, gamepad: gamepadControlConfig1}, artNetSenderA);
+spots[2] = new FollowJSSpot(2,fixtureLib.alphaBeam1500, spot2config, {keyboard: keyboardControlConfig2, gamepad: gamepadControlConfig2}, artNetSenderA);
 
 
 function initCalibration(spotNo) {
@@ -241,7 +239,6 @@ function exportCalibration() {
 }
 
 function showCalibrationPoint() {
-    // console.log("step "+calibrationStep);
     highlightImageCoord(true,(((calibrationStep-1) % 9) + 1) * 0.1,(Math.floor((calibrationStep-1) / 9) + 1) * 0.1);
 }
 
@@ -252,7 +249,6 @@ function highlightImageCoord(enable,x=0.5,y=0.5) {
     else {
         let pos_x = (x * x_img_max) % x_img_max;
         let pos_y = ((1-y) * y_img_max) % y_img_max;
-        // console.log("x:"+(pos_x).toString()+",y:"+(pos_y).toString());
         document.querySelector("#highlightMarker").style.top = (pos_y).toString();
         document.querySelector("#highlightMarker").style.left = (pos_x).toString();
         document.querySelector("#highlightMarker").classList.remove("hidden");
@@ -527,7 +523,7 @@ function initializeResources() {
 }
 /**
  * Initializes the data-fields needed for refresh handling
- * @param rsc element handle, e.g. from getElementByXYZ().s
+ * @param rsc element handle, e.g. from getElementByXYZ()
  */
 function initializeResource(rsc) {
     rsc.data('isLoading', 0);
@@ -559,7 +555,7 @@ function refreshResource(rsc) {
     }
     rsc.data('pc', 0);
 
-    if(rsc.data('isLoading') === 1) {
+    if(rsc.data('isLoading') === 1) { // did not finish loading in time, so slow down interval
         rsc.data('prescale', rsc.data('prescale') + 1);
         // rsc.attr('title', 'refresh every ' + rsc.data('prescale') + ' loading cycles');
         rsc.data('refreshRetries', rsc.data('refreshRetries') + 1);
@@ -595,7 +591,7 @@ function gamepadConnectCallback(event) {
     conditionalLog("gamepad " + event.gamepad.index + " (" + event.gamepad.id + ") connected");
 
     if(spots[event.gamepad.index+1] !== undefined) {
-        //there is a spot available to be bound to this gamepad
+        //there is a followspot available to be bound to this gamepad
         connectedGamepads[event.gamepad.index] = new FollowJSGamepad(event.gamepad, spots[event.gamepad.index+1]);
         // play welcome rumble using
         // chrome vibration proposal draft: https://docs.google.com/document/d/1jPKzVRNzzU4dUsvLpSXm1VXPQZ8FP-0lKMT-R_p-s6g/edit
@@ -621,7 +617,7 @@ function gamepadDisconnectCallback(event) {
 
 function enableGamepadCyclicReader() {
     if(gamepadIntervalHandle === null)
-        gamepadIntervalHandle = window.setInterval(gamepadCyclicReader,10); //15
+        gamepadIntervalHandle = window.setInterval(gamepadCyclicReader,10);
 }
 
 function gamepadCyclicReader() {
@@ -652,7 +648,6 @@ function gamepadReadAxes() {
         let pad1axisX = gamepadObject.currentState.axes[gamepadObject.assignedSpot.control.gamepad.mapping.axes.x];
         let pad1axisY = gamepadObject.currentState.axes[gamepadObject.assignedSpot.control.gamepad.mapping.axes.y];
 
-        //square function for transfer axis to movement
         let absX = Math.abs(pad1axisX);
         let absY = Math.abs(pad1axisY);
         let dirX = Math.sign(pad1axisX);
@@ -664,7 +659,6 @@ function gamepadReadAxes() {
         if(pad1moveX !== 0 || pad1moveY !== 0) {
             let moveX = Math.sign(gamepadObject.assignedSpot.control.gamepad.mapping.axesDirections.x) * pad1moveX * movementModifier * gamepadObject.assignedSpot.config.increment.x;
             let moveY = Math.sign(gamepadObject.assignedSpot.control.gamepad.mapping.axesDirections.y) * pad1moveY * movementModifier * gamepadObject.assignedSpot.config.increment.y;
-            // console.log("moveSpot("+moveX+","+moveY+")");
             gamepadObject.assignedSpot.moveSpot(moveX,moveY);
         }
 
@@ -689,7 +683,7 @@ function gamepadReadAxes() {
 
             gamepadObject.assignedSpot.dimSpot(moveDim);
         }
-    })
+    });
 }
 
 function gamepadReadButtons() {
@@ -697,18 +691,14 @@ function gamepadReadButtons() {
         gamepadObject.currentState.buttons.forEach(function (buttonState, index) {
             if (gamepadObject.currentState.buttons[index].pressed === true) {
                 if (gamepadObject.lastState.buttons[index].pressed === false) { //rising edge
-                    console.log("(rising edge) press on button " + index);
+                    // console.log("(rising edge) press on button " + index);
 
                     if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.snap)
                         gamepadObject.assignedSpot.snapSpot();
 
                     if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.home)
                         gamepadObject.assignedSpot.homeSpot();
-                            // if(calibrationActive === false)
-                            //     initCalibration(gamepadObject.assignedSpot.spotNumber);
-                            // else
-                            //     skipCalibrationPoint();
-                            // break;
+
                     if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.storeCalibrationPoint) {
                         if (calibrationActive)
                             storeCalibrationPoint();
