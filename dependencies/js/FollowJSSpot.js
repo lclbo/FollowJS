@@ -24,7 +24,6 @@ class FollowJSSpot {
         this.artnetSender = artnetSender;
 
         this.state = new Object(this.config.home); // create Object from template
-        // this.dmxBuffer = new Array(Object.keys(this.fixture.dmx.channels).length);
         this.dmxBuffer = [];
 
         for(const [chan,data] of Object.entries(this.fixture.dmx.channels)) {
@@ -36,7 +35,6 @@ class FollowJSSpot {
     }
     sendDMX() {
         this.artnetSender.setChannels(this.config.connection.address, this.dmxBuffer);
-        // this.artnetSender.setChannels(this.config.connection.address-1, this.dmxBuffer);
     }
 
     async allToDMX() {
@@ -82,97 +80,75 @@ class FollowJSSpot {
             this.state.y = Math.min(Math.max(this.state.y + dY, this.config.boundaries.y.min), this.config.boundaries.y.max);
 
         // console.log("Spot "+this.spotNumber+": x: "+this.state.x+", y: "+this.state.y);
-        // this.positionToDMX()
 
         const _this=this;
         this.allToDMX().then(function() {
             _this.sendDMX()
         });
-        // this.sendDMX();
     }
     resizeSpot(dR) {
         if(dR !== 0)
             this.state.r = Math.min(Math.max(this.state.r+dR, this.config.boundaries.r.min),this.config.boundaries.r.max);
 
-        // this.stateToDMX();
-
         const _this=this;
         this.allToDMX().then(function() {
             _this.sendDMX();
         });
-        // this.sendDMX();
     }
     frostSpot(dF) {
         if(dF !== 0)
             this.state.frost = Math.min(Math.max(this.state.frost+dF, this.config.boundaries.frost.min),this.config.boundaries.frost.max);
 
-        // this.stateToDMX();
-
         const _this=this;
         this.allToDMX().then(function() {
             _this.sendDMX();
         });
-        // this.sendDMX();
     }
     focusSpot(dF) {
         if(dF !== 0)
             this.state.focus = Math.min(Math.max(this.state.focus+dF, this.config.boundaries.focus.min),this.config.boundaries.focus.max);
 
-        // this.stateToDMX();
-
         const _this=this;
         this.allToDMX().then(function() {
             _this.sendDMX();
         });
-        // this.sendDMX();
     }
     dimSpot(dDim) {
         if(dDim !== 0)
             this.state.dim = Math.min(Math.max(this.state.dim+dDim, this.config.boundaries.dim.min),this.config.boundaries.dim.max);
 
-        // this.stateToDMX();
-
         const _this=this;
         this.allToDMX().then(function() {
             _this.sendDMX();
         });
-        // this.sendDMX();
     }
     snapSpot() {
         this.state.shutterOpen = (this.state.shutterOpen === false);
 
-        // this.stateToDMX();
-
         const _this=this;
         this.allToDMX().then(function() {
             _this.sendDMX();
         });
-        // this.sendDMX();
     }
     snapToCTO() {
         this.state.CTOin = (this.state.CTOin === false);
 
         if(this.state.CTOin === false)
             this.state.colorWheelIndex = 0;
-        // this.stateToDMX();
 
         const _this=this;
         this.allToDMX().then(function() {
             _this.sendDMX();
         });
-        // this.sendDMX();
     }
     rotateColorWheel(distance) {
         let cwLen = this.fixture.dmx.colorWheel.length;
         this.state.colorWheelIndex = (((this.state.colorWheelIndex + distance) % cwLen) + cwLen) % cwLen;
 
-        // this.stateToDMX();
-
         const _this=this;
         this.allToDMX().then(function() {
             _this.sendDMX();
         });
-        // this.sendDMX();
     }
 
     scrollContextMenu(distance) {

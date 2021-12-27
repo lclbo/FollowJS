@@ -42,8 +42,9 @@
     <div class="container-fluid bg-dark align-content-center align-items-center text-center">
         <div id="webcamDrawArea">
             <div id="controllerConnectOverlay" class="cameraImageHugeWarningTextOverlay">Waiting for controller…</div>
-            <img src="http://restream.video.wbko.net:5555/live.mjpg" alt="Camera image will be here" class="webcam" data-rscIndex="1" data-defaultPrescale="2" data-path="http://192.168.0.225:8765/picture/1/current/">
-            <img src="placeholder.jpeg" class="webcam">
+            <img src="placeholder.jpeg" class="webcam" style="position: relative" alt="Placeholder">
+            <img src="http://restream.video.wbko.net:5555/live.mjpg" style="position: absolute; top: 0; left: 0;" alt="Camera image will be here" class="webcam" data-rscIndex="1" data-defaultPrescale="2" data-path="http://192.168.0.225:8765/picture/1/current/">
+
             <svg height="100%" width="100%" class="gridOverlay hidden" id="tenthGridOverlay">
                 <line x1="0" y1="0" x2="100%" y2="100%" stroke="orange"></line>
                 <line x1="0" y1="100%" x2="100%" y2="0" stroke="orange"></line>
@@ -68,52 +69,17 @@
                 <line x1="80%" y1="0" x2="80%" y2="100%" stroke="green"></line>
                 <line x1="90%" y1="0" x2="90%" y2="100%" stroke="green"></line>
             </svg>
-
-            <svg class="spotMarker" id="spotMarker[1]">
-                <circle cx="50%" cy="50%" r="50" fill="purple" stroke="purple" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" />
-<!--                <line x1="50%" y1="50%" x2="100%" y2="100%" stroke="purple"></line>-->
-            </svg>
-            <svg class="spotMarker" id="spotMarker[2]">
-                <circle cx="50%" cy="50%" r="50" fill="yellow" stroke="yellow" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" />
-            </svg>
             <svg height="50" width="50" class="spotMarker hidden" id="highlightMarker">
                 <circle cx="50%" cy="50%" r="25" stroke="blue" stroke-width="2" fill="none" />
                 <circle cx="50%" cy="50%" r="5" fill="blue" fill-opacity=".4" />
             </svg>
 
-            <div class="spotContextMenu row-cols-1" id="spotContextMenu[1]"></div>
-            <div class="spotContextMenu row-cols-1" id="spotContextMenu[2]"></div>
+<!--            <svg class="spotMarker" id="spotMarker[1]">-->
+<!--                <circle cx="50%" cy="50%" r="50" fill="purple" stroke="purple" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" />-->
+<!--            </svg>-->
+<!--            <div class="spotContextMenu row-cols-1" id="spotContextMenu[1]"></div>-->
 
-            <div class="spotStatusOverlayArea row align-items-start">
-                <div class="spotStatusOverlayGroup col p-0 mx-2">
-                    <div class="spotStatusGauge" id="gauge[1][dim]">
-                        <div class="spotStatusOverlayDim">Dimmer</div>
-                    </div>
-                    <div class="spotStatusGauge" id="gauge[1][color]">
-                        <div class="spotStatusOverlayColor">Color</div>
-                    </div>
-                    <div class="spotStatusGauge" id="gauge[1][focus]">
-                        <div class="spotStatusOverlayFocus">Focus</div>
-                    </div>
-                    <div class="spotStatusGauge" id="gauge[1][frost]">
-                        <div class="spotStatusOverlayFrost">Frost</div>
-                    </div>
-                </div>
-                <div class="spotStatusOverlayGroup col p-0 mx-2">
-                    <div class="spotStatusGauge" id="gauge[2][dim]">
-                        <div class="spotStatusOverlayDim">Dimmer</div>
-                    </div>
-                    <div class="spotStatusGauge" id="gauge[2][color]">
-                        <div class="spotStatusOverlayColor">Color</div>
-                    </div>
-                    <div class="spotStatusGauge" id="gauge[2][focus]">
-                        <div class="spotStatusOverlayFocus">Focus</div>
-                    </div>
-                    <div class="spotStatusGauge" id="gauge[2][frost]">
-                        <div class="spotStatusOverlayFrost">Frost</div>
-                    </div>
-                </div>
-            </div>
+            <div id="spotStatusOverlayArea" class="spotStatusOverlayArea row align-items-start"></div>
 
         </div>
         <div id="placeholderBG" style="height: 498px;"></div>

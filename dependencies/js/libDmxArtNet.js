@@ -5,10 +5,6 @@
 
 const dgram = require('dgram');
 const jspack = require('jspack').jspack;
-//Require Logger
-// const manager = require('simple-node-logger').createLogManager();
-//Init Logger
-// const log = manager.createLogger('dmxnet');
 
 // ArtDMX Header for jspack
 const ArtDmxHeaderFormat = '!7sBHHBBBBH';
@@ -17,24 +13,15 @@ const ArtDmxPayloadFormat = '512B';
 
 
 //dmxnet constructor
-function dmxnet(options) {
+function DmxArtNet(options) {
     this.verbose=options.verbose || 0;
     this.oem=options.oem || 2908; //OEM code hex
-    // if(this.verbose>0) {
-    //     log.setLevel('info');
-    //     if(this.verbose>1) {
-    //         log.setLevel('debug');
-    //     }
-    // } else {
-    //     log.setLevel('warn');
-    // }
-    // log.info("started with options "+JSON.stringify(options));
     //ToDo: Register Sender and Receiver
     //ToDo: Send ArtPoll
     return this;
 }
 //get a new sender object
-dmxnet.prototype.newSender=function(options) {
+DmxArtNet.prototype.newSender=function(options) {
     return new sender(options,this);
 }
 
@@ -57,20 +44,17 @@ sender=function (options={},parent){
 
     //Validate Input
     if(this.net > 127) {
-        throw "Invalid Net, must be smaller than 128";
+        throw "NET field must be < 128";
     }
     if(this.universe > 15) {
-        throw "Invalid Universe, must be smaller than 16";
+        throw "UNIVERSE must be < 16";
     }
     if(this.subnet > 15) {
-        throw "Invalid subnet, must be smaller than 16";
+        throw "SUBNET must be < 16";
     }
     if((this.net < 0)||(this.subnet < 0)||(this.universe < 0)) {
-        throw "Subnet, Net or Universe must be 0 or bigger!";
+        throw "SUBNET, NET and UNIVERSE must be >= 0";
     }
-    // if(this.verbose>0) {
-    //     log.info("new dmxnet sender started with params: "+JSON.stringify(options));
-    // }
 
     //init dmx-value array
     this.values = [];
@@ -119,24 +103,24 @@ sender.prototype.transmit = function () {
         //     this.ArtDmxSeq=1;
         // }
 
-        // disable auto-retransmit since transmit was called
-        // clearInterval(this.interval);
-
         // disable sequential order functionality
         this.ArtDmxSeq = 0;
 
+        // disable auto-retransmit since transmit was called
+        // clearInterval(this.interval);
+
         //Build packet: ID Int8[8], OpCode Int16 0x5000 (conv. to 0x0050), ProtVer Int16, Sequence Int8, PhysicalPort Int8, SubnetUniverseNet Int16, Length Int16
-        let udppacket = new Buffer(jspack.Pack(ArtDmxHeaderFormat + ArtDmxPayloadFormat, ["Art-Net", 0, 0x0050, 14, this.ArtDmxSeq, 0, this.subuni, this.net, this.values.length].concat(this.values)));
+        // let udppacket = new Buffer(jspack.Pack(ArtDmxHeaderFormat + ArtDmxPayloadFormat, ["Art-Net", 0, 0x0050, 14, this.ArtDmxSeq, 0, this.subuni, this.net, this.values.length].concat(this.values)));
+        let udppacket = new Buffer.from(jspack.Pack(ArtDmxHeaderFormat + ArtDmxPayloadFormat, ["Art-Net", 0, 0x0050, 14, this.ArtDmxSeq, 0, this.subuni, this.net, this.values.length].concat(this.values)));
+
 
         //Increase Sequence Counter
         // this.ArtDmxSeq++;
 
-        // log.debug("Packet content: "+udppacket.toString('hex'));
         //Send UDP
         this.socket.send(udppacket, 0, udppacket.length, this.port, this.ip, function (err, bytes) {
             if (err)
                 throw err;
-            // log.info('ArtDMX frame sent to ' + _this.ip +':'+ _this.port);
         });
 
         //Send Frame all 1000ms even there is no channel change
@@ -252,4 +236,4 @@ function isBroadcast(ipaddress) {
 
 //ToDo: Receiver
 //Export dmxnet
-module.exports = {dmxnet};
+module.exports = {DmxArtNet};

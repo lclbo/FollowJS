@@ -2,7 +2,6 @@ module.exports = {
     xboxOneControllerDefault: {
         config: {
             modifier: 1/5000,
-            deadZone: 0.15, //0.14
             deadZones: {
                 movement: 0.15,
                 other: 0.5

@@ -1,6 +1,5 @@
-const dmxlib = require('./dependencies/js/libDmxnet');
-const dmxnet = new dmxlib.dmxnet({
-    // log: { level: 'info' }, // Winston logger options
+const dmxLib = require('./dependencies/js/libDmxArtNet');
+const dmxArtNet = new dmxLib.DmxArtNet({
     oem: 0, //OEM Code from artisticlicense, default to dmxnet OEM.
     sName: "Follow.JS", // 17 char long node description, default to "dmxnet"
     lName: "Followspot Control JS", // 63 char long node description, default to "dmxnet - OpenSource ArtNet Transceiver"
@@ -12,7 +11,7 @@ const gamepadLib =require('./dependencies/js/gamepadLib');
 const FollowJSGamepad = require('./dependencies/js/FollowJSGamepad.js');
 const FollowJSSpot = require('./dependencies/js/FollowJSSpot');
 
-let artnetSenderA = dmxnet.newSender({
+let artNetSenderA = dmxArtNet.newSender({
     // ip: '127.0.0.1',
     // ip: '192.168.2.255',
     ip: '10.0.20.255',
@@ -24,6 +23,8 @@ let artnetSenderA = dmxnet.newSender({
 let gamepadIntervalHandle = null;
 
 let globalTimestamp = new Date();
+
+let spotMarkerColors = ["green", "blue", "purple", "yellow"];
 
 let imageRefreshInterval = 50;
 let imageIntervalHandle = null;
@@ -188,8 +189,8 @@ let spot2config = {
 }
 
 
-let spot1 = new FollowJSSpot(1,fixtureLib.alphaBeam1500, spot1config, {keyboard: keyboardControlConfig1, gamepad: gamepadControlConfig1}, artnetSenderA);
-let spot2 = new FollowJSSpot(2,fixtureLib.alphaBeam1500, spot2config, {keyboard: keyboardControlConfig2, gamepad: gamepadControlConfig2}, artnetSenderA);
+let spot1 = new FollowJSSpot(1,fixtureLib.alphaBeam1500, spot1config, {keyboard: keyboardControlConfig1, gamepad: gamepadControlConfig1}, artNetSenderA);
+let spot2 = new FollowJSSpot(2,fixtureLib.alphaBeam1500, spot2config, {keyboard: keyboardControlConfig2, gamepad: gamepadControlConfig2}, artNetSenderA);
 
 spots[1] = spot1;
 spots[2] = spot2;
@@ -300,19 +301,41 @@ function printGauges() {
     });
 }
 
-// function sendDMX() {
-//     for(const chan of Object.keys(spot1.dmxBuffer)) {
-//         let channelInt = (spot1.config.connection.address-1+Number.parseInt(chan)); // - 1; //ArtNet lib has 0-indexed channels
-//         // console.log("chan " + channelInt + "@" + spot1.dmxBuffer[chan]);
-//         artnetSenderA.prepChannel(channelInt, spot1.dmxBuffer[chan]);
-//     }
-//     artnetSenderA.transmit();
-// }
-
 function drawIntervalCallback() {
     drawSpots();
     printDMX();
     printGauges();
+}
+
+function addSpotsToDOM() {
+    spots.forEach(function(spot, spotNo) {
+        document.getElementById("webcamDrawArea").insertAdjacentHTML('beforeend',
+            '<svg class="spotMarker" id="spotMarker['+spotNo+']">\n' +
+            '   <circle cx="50%" cy="50%" r="50" fill="'+spotMarkerColors[((spotNo-1) % (spotMarkerColors.length))]+'" stroke="'+spotMarkerColors[((spotNo-1) % (spotMarkerColors.length))]+'" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" />\n' +
+            '</svg>'
+        );
+
+        document.getElementById("webcamDrawArea").insertAdjacentHTML('beforeend',
+            '<div class="spotContextMenu row-cols-1" id="spotContextMenu['+spotNo+']"></div>'
+        );
+
+        document.getElementById("spotStatusOverlayArea").insertAdjacentHTML('beforeend',
+            '<div class="spotStatusOverlayGroup col p-0 mx-2" style="border-color: '+spotMarkerColors[((spotNo-1) % (spotMarkerColors.length))]+';">\n' +
+            '   <div class="spotStatusGauge" id="gauge['+spotNo+'][dim]">\n' +
+            '       <div class="spotStatusOverlayDim">Dimmer</div>\n' +
+            '   </div>\n' +
+            '   <div class="spotStatusGauge" id="gauge['+spotNo+'][color]\">\n' +
+            '       <div class="spotStatusOverlayColor">Color</div>\n' +
+            '   </div>\n' +
+            '   <div class="spotStatusGauge" id="gauge['+spotNo+'][focus]\">\n' +
+            '       <div class="spotStatusOverlayFocus">Focus</div>\n' +
+            '   </div>\n' +
+            '   <div class="spotStatusGauge" id="gauge['+spotNo+'][frost]\">\n' +
+            '       <div class="spotStatusOverlayFrost">Frost</div>\n' +
+            '   </div>\n' +
+            '</div>'
+            );
+    });
 }
 
 function drawSpots() {
@@ -331,16 +354,12 @@ function drawSpots() {
 
         let spotMarkerElement = document.getElementById("spotMarker["+spotNo+"]");
         spotMarkerElement.style.top = ((1-pos_y) * y_img_max).toString()+"px";
-        // spotMarkerElement.style.left = (pos_x * (document.getElementById("webcamDrawArea").offsetWidth)).toString()+"px";
         spotMarkerElement.style.left = (pos_x * x_img_max).toString()+"px";
         spotMarkerElement.firstElementChild.setAttribute("r", (pos_r*(r_img_max-r_img_min)+r_img_min).toString());
         spotMarkerElement.firstElementChild.setAttribute("fill-opacity", opacity);
 
         if(spot.contextMenuState.visible === true)
             updateContextMenu(spotNo);
-
-        //document.querySelector("#coordLabel1").innerHTML = "("+spot.state.x.toPrecision(2)+"|"+spot.state.y.toPrecision(2)+")";
-        //document.querySelector("#radiusLabel1").innerHTML = "r="+spot.state.r.toPrecision(3);
     });
 }
 
@@ -749,23 +768,13 @@ function conditionalLog(msg) {
 $(function() {
     // ready function
     conditionalLog("execute ready function");
-
     updateWindowSize();
-
     initializeResources();
     startRefresh();
-
     if(drawIntervalHandle === null)
         drawIntervalHandle = window.setInterval(drawIntervalCallback,25); //15
-
     // enableCaptureKeyboard();
-
     enableGamepadConnectionEventListeners();
-
-    // drawMacroButtons();
+    addSpotsToDOM();
     prepareDMXTable();
-
-    // spots.forEach(function(spot, spotNo) {
-    //     spot.homeSpot();
-    // });
 });

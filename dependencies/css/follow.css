@@ -165,6 +165,7 @@
     left: 50%;
     top: calc(100% - 5vh);
     z-index: 100;
+    width: fit-content;
 }
 
 .spotStatusOverlayGroup {

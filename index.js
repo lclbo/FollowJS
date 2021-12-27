@@ -1,6 +1,6 @@
 const {app, BrowserWindow} = require('electron');
 const path = require('path');
-const url = require('url');
+// const url = require('url');
 
 let winRef;
 
@@ -17,11 +17,14 @@ async function createWindow () {
     fullscreen: true
   });
   // winRef.setAlwaysOnTop(true);
-  winRef.loadURL(url.format({
-    pathname: path.join(__dirname, 'main.html'),
-    protocol: 'file:',
-    slashes: true
-  }));
+
+  await winRef.loadFile(path.join(__dirname, 'main.html'));
+
+  // winRef.loadURL(url.format({
+  //   pathname: path.join(__dirname, 'main.html'),
+  //   protocol: 'file:',
+  //   slashes: true
+  // }));
 
   // winRef.openDevTools();
 
