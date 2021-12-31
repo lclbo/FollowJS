@@ -309,7 +309,7 @@ function addSpotsToDOM() {
     spots.forEach(function(spot, spotNo) {
         document.getElementById("webcamDrawArea").insertAdjacentHTML('beforeend',
             '<svg class="spotMarker" id="spotMarker['+spotNo+']">\n' +
-            '   <circle cx="50%" cy="50%" r="50" fill="'+spotMarkerColors[((spotNo-1) % (spotMarkerColors.length))]+'" stroke="'+spotMarkerColors[((spotNo-1) % (spotMarkerColors.length))]+'" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" />\n' +
+            '   <circle cx="50%" cy="50%" r="50" fill="'+spotMarkerColors[((spotNo-1) % (spotMarkerColors.length))]+'" stroke="'+spotMarkerColors[((spotNo-1) % (spotMarkerColors.length))]+'" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" onclick="toggleContextMenu('+spotNo+');" />\n' +
             '</svg>'
         );
 
@@ -438,7 +438,11 @@ function drawContextMenu(spotNo) {
         if(key === spot.contextMenuState.selectedIndex)
             selectClass = "spotContextMenuHighlight";
 
-        document.getElementById("spotContextMenu["+spotNo+"]").insertAdjacentHTML("beforeend", '<div class="col px-2 '+selectClass+'" id="macroButton['+spotNo+']['+key+']" onclick="executeMacro('+spotNo+','+key+')"><span class="spinner-grow spinner-grow-sm hiddenVis" role="status"></span>&nbsp;'+macro.short+'</div>');
+        document.getElementById("spotContextMenu["+spotNo+"]").insertAdjacentHTML("beforeend", '' +
+            '<div class="text-start col px-2 '+selectClass+'" id="macroButton['+spotNo+']['+key+']" onclick="executeMacro('+spotNo+','+key+')">' +
+            // '<span class="spinner-grow spinner-grow-sm hiddenVis" role="status"></span>&nbsp;' +
+            macro.short+'' +
+            '</div>');
     });
 
     spotContextMenuElement.insertAdjacentHTML("beforeend", '<div class="col px-2" id="calib['+spotNo+']" onclick="initCalibration('+spotNo+')">Calibrate</div>');
@@ -484,6 +488,12 @@ function toggleContextMenu(spotNo) {
         drawContextMenu(spotNo);
         updateContextMenu(spotNo);
     }
+}
+
+function hideAllContextMenus() {
+    spots.forEach(function(spot,spotNo) {
+        hideContextMenu(spotNo);
+    });
 }
 
 function hideContextMenu(spotNo) {

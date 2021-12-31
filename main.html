@@ -41,8 +41,8 @@
     <div class="container-fluid bg-dark align-content-center align-items-center text-center">
         <div id="webcamDrawArea">
             <div id="controllerConnectOverlay" class="cameraImageHugeWarningTextOverlay">Waiting for controller…</div>
-            <img src="placeholder.jpeg" class="webcam" style="position: relative" alt="Placeholder">
-            <img src="#" style="position: absolute; top: 0; left: 0;" alt="Camera image will be here" class="webcam refresh" data-rscIndex="1" data-defaultPrescale="2" data-path="http://restream.video.wbko.net:5555/still.jpg">
+            <img src="placeholder.jpeg" onclick="hideAllContextMenus();" class="webcam" style="position: relative" alt="Placeholder">
+            <img src="#" onclick="hideAllContextMenus();" style="position: absolute; top: 0; left: 0;" alt="Camera image will be here" class="webcam refresh" data-rscIndex="1" data-defaultPrescale="2" data-path="http://restream.video.wbko.net:5555/still.jpg">
 
             <svg height="100%" width="100%" class="gridOverlay hidden" id="tenthGridOverlay">
                 <line x1="0" y1="0" x2="100%" y2="100%" stroke="orange"></line>
