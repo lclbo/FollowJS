@@ -195,11 +195,16 @@ spots[2] = new FollowJSSpot(2,fixtureLib.alphaBeam1500, spot2config, {keyboard: 
 
 
 function initCalibration(spotNo) {
+    if(calibrationActive)
+        cancelCalibration();
+
+    hideAllContextMenus();
     console.log("init calibration");
     calibrationActive = true;
     calibrationStep = 1;
     calibrationSpotNo = spotNo;
-    blinkSpotMarker(spotNo, 1);
+    blinkSpotMarker(spotNo, 2);
+    blinkSpotStatus(spotNo, 2);
     showGridOverlay();
     showCalibrationPoint();
 }
@@ -217,8 +222,16 @@ function skipCalibrationPoint() {
     if(calibrationStep > calibrationValues.length)
         finishCalibration();
 }
+function cancelCalibration() {
+    stopAllBlinkSpotStatus();
+    stopAllBlinkSpotMarkers();
+    highlightImageCoord(false);
+    hideGridOverlay();
+    calibrationActive = false;
+}
 function finishCalibration() {
     stopBlinkSpotMarker(calibrationSpotNo);
+    stopBlinkSpotStatus(calibrationSpotNo);
     highlightImageCoord(false);
     exportCalibration();
     hideGridOverlay();
@@ -299,6 +312,22 @@ function printGauges() {
     });
 }
 
+function blinkSpotStatus(spotNo, cycleDuration=1) {
+    let spotStatusElement = document.getElementById("spotStatusOverlay["+spotNo+"]");
+    spotStatusElement.style.animation = 'blinkOpacityAnimation '+(Math.max(0.1,parseInt(cycleDuration))).toString()+'s linear infinite';
+}
+
+function stopBlinkSpotStatus(spotNo) {
+    let spotStatusElement = document.getElementById("spotStatusOverlay["+spotNo+"]");
+    spotStatusElement.style.animation = '';
+}
+
+function stopAllBlinkSpotStatus() {
+    spots.forEach(function(spot, spotNo) {
+        stopBlinkSpotStatus(spotNo);
+    });
+}
+
 function drawIntervalCallback() {
     drawSpots();
     printDMX();
@@ -314,11 +343,11 @@ function addSpotsToDOM() {
         );
 
         document.getElementById("webcamDrawArea").insertAdjacentHTML('beforeend',
-            '<div class="spotContextMenu row-cols-1" id="spotContextMenu['+spotNo+']"></div>'
+            '<div class="spotContextMenu row-cols-1 text-start" id="spotContextMenu['+spotNo+']"></div>'
         );
 
         document.getElementById("spotStatusOverlayArea").insertAdjacentHTML('beforeend',
-            '<div class="spotStatusOverlayGroup col p-0 mx-2" style="border-color: '+spotMarkerColors[((spotNo-1) % (spotMarkerColors.length))]+';">\n' +
+            '<div id="spotStatusOverlay['+spotNo+']" class="spotStatusOverlayGroup col p-0 mx-2" style="border-color: '+spotMarkerColors[((spotNo-1) % (spotMarkerColors.length))]+';">\n' +
             '   <div class="spotStatusGauge" id="gauge['+spotNo+'][dim]">\n' +
             '       <div class="spotStatusOverlayDim">Dimmer</div>\n' +
             '   </div>\n' +
@@ -343,11 +372,11 @@ function blinkSpotMarker(spotNo, cycleDuration=1) {
 
 function stopBlinkSpotMarker(spotNo) {
     let spotMarkerElement = document.getElementById("spotMarker["+spotNo+"]");
-    spotMarkerElement.firstElementChild.removeChild(spotMarkerElement.firstElementChild.firstElementChild);
+    spotMarkerElement.firstElementChild.innerHTML = '';
 }
 
 function stopAllBlinkSpotMarkers() {
-    spots.forEach(function(spotNo) {
+    spots.forEach(function(spot, spotNo) {
        stopBlinkSpotMarker(spotNo);
     });
 }
@@ -439,7 +468,7 @@ function drawContextMenu(spotNo) {
             selectClass = "spotContextMenuHighlight";
 
         document.getElementById("spotContextMenu["+spotNo+"]").insertAdjacentHTML("beforeend", '' +
-            '<div class="text-start col px-2 '+selectClass+'" id="macroButton['+spotNo+']['+key+']" onclick="executeMacro('+spotNo+','+key+')">' +
+            '<div class="col px-2 '+selectClass+'" id="macroButton['+spotNo+']['+key+']" onclick="executeMacro('+spotNo+','+key+')">' +
             // '<span class="spinner-grow spinner-grow-sm hiddenVis" role="status"></span>&nbsp;' +
             macro.short+'' +
             '</div>');

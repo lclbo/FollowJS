@@ -136,6 +136,16 @@
     to   { opacity: 1; }
 }
 
+@keyframes blinkOpacityAnimation {
+    50% {
+        opacity: 0.2;
+    }
+}
+
+.blinkOpacity {
+    animation: blinkOpacityAnimation 1s linear infinite;
+}
+
 .spotContextMenu {
     position: absolute;
     /*transform: translate(0,0);*/
@@ -159,8 +169,6 @@
 .spotStatusOverlayArea {
     position: absolute;
     transform: translate(-50%,-100%);
-    /*left: 500px;*/
-    /*top: 75%;*/
     left: 50%;
     top: calc(100% - 5vh);
     z-index: 100;
@@ -168,7 +176,6 @@
 }
 
 .spotStatusOverlayGroup {
-    /*border: 2px solid yellow;*/
     border: .25rem solid #762551;
     /*color: #dddddd;*/
 }

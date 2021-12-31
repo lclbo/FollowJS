@@ -19,7 +19,7 @@ async function createWindow () {
 
   await winRef.loadFile(path.join(__dirname, 'main.html'));
 
-  // winRef.openDevTools();
+  winRef.openDevTools();
 
   winRef.on('closed', () => {
     winRef = null;
