@@ -31,7 +31,8 @@ module.exports = {
                     contextMenuShow: 9,
                     contextMenuUp: 12,
                     contextMenuDown: 13,
-                    contextMenuSelect: 0
+                    contextMenuSelect: 0,
+                    contextMenuCancel: 1
                 },
                 analogButtons: {
                     faster: 7,
@@ -68,7 +69,8 @@ module.exports = {
                     contextMenuShow: 9,
                     contextMenuUp: 12,
                     contextMenuDown: 13,
-                    contextMenuSelect: 0
+                    contextMenuSelect: 0,
+                    contextMenuCancel: 1
                 },
                 analogButtons: {
                     faster: 7,
