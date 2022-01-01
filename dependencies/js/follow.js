@@ -196,15 +196,20 @@ spots[2] = new FollowJSSpot(2,fixtureLib.alphaBeam1500, spot2config, {keyboard: 
 
 function initCalibration(spotNo) {
     if(calibrationActive)
-        cancelCalibration();
+        endCalibration();
 
+    document.getElementById('downloadButtonLanding').innerHTML = '';
+    document.getElementById('cancelCalibrationButton').classList.remove("hidden");
     hideAllContextMenus();
     console.log("init calibration");
     calibrationActive = true;
     calibrationStep = 1;
     calibrationSpotNo = spotNo;
+    hideAllSpotMarkerExceptFor(spotNo);
+    hideAllSpotStatusExceptFor(spotNo);
     blinkSpotMarker(spotNo, 2);
-    blinkSpotStatus(spotNo, 2);
+    setSpotStatusOpacity(spotNo, 0.25);
+    // blinkSpotStatus(spotNo, 2);
     showGridOverlay();
     showCalibrationPoint();
 }
@@ -212,33 +217,34 @@ function storeCalibrationPoint() {
     calibrationValues[calibrationStep-1] = [spots[calibrationSpotNo].state.x, spots[calibrationSpotNo].state.y];
     calibrationStep++;
     showCalibrationPoint();
-    if(calibrationStep > calibrationValues.length)
-        finishCalibration();
+    if(calibrationStep > calibrationValues.length) {
+        exportCalibration();
+        endCalibration();
+    }
 }
 function skipCalibrationPoint() {
     calibrationValues[calibrationStep-1] = [null, null];
     calibrationStep++;
     showCalibrationPoint();
-    if(calibrationStep > calibrationValues.length)
-        finishCalibration();
+    if(calibrationStep > calibrationValues.length) {
+        exportCalibration();
+        endCalibration();
+    }
 }
-function cancelCalibration() {
-    stopAllBlinkSpotStatus();
-    stopAllBlinkSpotMarkers();
+function endCalibration() {
+    stopBlinkAllSpotStatus();
+    stopBlinkAllSpotMarker();
     highlightImageCoord(false);
+    showAllSpotMarker();
+    showAllSpotStatus();
+    setSpotStatusOpacity(calibrationSpotNo, 1);
+    document.getElementById('cancelCalibrationButton').classList.add("hidden");
     hideGridOverlay();
     calibrationActive = false;
 }
-function finishCalibration() {
-    stopBlinkSpotMarker(calibrationSpotNo);
-    stopBlinkSpotStatus(calibrationSpotNo);
-    highlightImageCoord(false);
-    exportCalibration();
-    hideGridOverlay();
-    calibrationActive = false;
-}
+
 function exportCalibration() {
-    console.log(calibrationValues);
+    // console.log(calibrationValues);
     let plainText = "";
     calibrationValues.forEach(function(elem) {
         plainText = plainText + elem[0] + "," + elem[1] + ";";
@@ -247,10 +253,11 @@ function exportCalibration() {
     let plainBlob = new Blob([plainText], {type: 'application/octet-stream;charset=utf-8'});
     let plainLink = window.URL.createObjectURL(plainBlob);
     let a = document.createElement("a");
-    a.download = 'calibration-spot-'+calibrationSpotNo+'.csv';
+    a.download = 'calibration-'+globalTimestamp.getFullYear()+'-'+(globalTimestamp.getMonth()+1)+'-'+globalTimestamp.getDate()+'-spot'+calibrationSpotNo+'.csv';
     a.href = plainLink;
-    a.innerHTML = "<b>Download Calibration</b>";
+    a.innerHTML = "<button class='btn btn-primary'>Download Calibration</button>";
     document.getElementById('downloadButtonLanding').appendChild(a);
+    document.getElementById('cancelCalibrationButton').classList.add("hidden");
 }
 
 function showCalibrationPoint() {
@@ -303,13 +310,18 @@ function printDMX() {
     });
 }
 
-function printGauges() {
+function printAllSpotStatus() {
     spots.forEach(function(spotRef, spotNumber) {
         document.getElementById("gauge["+spotNumber+"][dim]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.dim] / 255 * 100).toString() + "%";
         document.getElementById("gauge["+spotNumber+"][color]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.colorWheel] / 110 * 100).toString() + "%";
         document.getElementById("gauge["+spotNumber+"][focus]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.focus] / 255 * 100).toString() + "%";
         document.getElementById("gauge["+spotNumber+"][frost]").style.width = (spotRef.dmxBuffer[spotRef.fixture.dmx.mapping.frost] / 255 * 100).toString() + "%";
     });
+}
+
+function setSpotStatusOpacity(spotNo, opacity) {
+    let spotStatusElement = document.getElementById("spotStatusOverlay["+spotNo+"]");
+    spotStatusElement.style.opacity = Math.min(1,Math.max(0,opacity)).toString();
 }
 
 function blinkSpotStatus(spotNo, cycleDuration=1) {
@@ -322,16 +334,32 @@ function stopBlinkSpotStatus(spotNo) {
     spotStatusElement.style.animation = '';
 }
 
-function stopAllBlinkSpotStatus() {
+function stopBlinkAllSpotStatus() {
     spots.forEach(function(spot, spotNo) {
         stopBlinkSpotStatus(spotNo);
+    });
+}
+
+function showAllSpotStatus() {
+    spots.forEach(function(spot, spotNo) {
+        let spotStatusElement = document.getElementById("spotStatusOverlay["+spotNo+"]");
+        spotStatusElement.classList.remove("hiddenVis");
+    });
+}
+
+function hideAllSpotStatusExceptFor(dontHideSpotNo) {
+    spots.forEach(function(spot, spotNo) {
+        if(spotNo !== dontHideSpotNo) {
+            let spotStatusElement = document.getElementById("spotStatusOverlay["+spotNo+"]");
+            spotStatusElement.classList.add("hiddenVis");
+        }
     });
 }
 
 function drawIntervalCallback() {
     drawSpots();
     printDMX();
-    printGauges();
+    printAllSpotStatus();
 }
 
 function addSpotsToDOM() {
@@ -375,9 +403,25 @@ function stopBlinkSpotMarker(spotNo) {
     spotMarkerElement.firstElementChild.innerHTML = '';
 }
 
-function stopAllBlinkSpotMarkers() {
+function stopBlinkAllSpotMarker() {
     spots.forEach(function(spot, spotNo) {
        stopBlinkSpotMarker(spotNo);
+    });
+}
+
+function showAllSpotMarker() {
+    spots.forEach(function(spot, spotNo) {
+        let spotMarkerElement = document.getElementById("spotMarker["+spotNo+"]");
+        spotMarkerElement.classList.remove("hiddenVis");
+    });
+}
+
+function hideAllSpotMarkerExceptFor(dontHideSpotNo) {
+    spots.forEach(function(spot, spotNo) {
+        if(spotNo !== dontHideSpotNo) {
+            let spotMarkerElement = document.getElementById("spotMarker["+spotNo+"]");
+            spotMarkerElement.classList.add("hiddenVis");
+        }
     });
 }
 
@@ -742,13 +786,15 @@ function gamepadReadButtons() {
                     if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.home)
                         gamepadObject.assignedSpot.homeSpot();
 
-                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.storeCalibrationPoint) {
-                        if (calibrationActive)
-                            storeCalibrationPoint();
-                    }
-                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.skipCalibrationPoint) {
-                        if (calibrationActive)
-                            skipCalibrationPoint();
+                    if (calibrationActive) {
+                        if(calibrationSpotNo === gamepadObject.assignedSpot.spotNumber) {
+                            if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.storeCalibrationPoint) {
+                                storeCalibrationPoint();
+                            }
+                            if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.skipCalibrationPoint) {
+                                skipCalibrationPoint();
+                            }
+                        }
                     }
 
                     if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.colorWheelNext)
