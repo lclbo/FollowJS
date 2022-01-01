@@ -232,7 +232,7 @@ function skipCalibrationPoint() {
     }
 }
 function endCalibration() {
-    stopBlinkAllSpotStatus();
+    // stopBlinkAllSpotStatus();
     stopBlinkAllSpotMarker();
     highlightImageCoord(false);
     showAllSpotMarker();
@@ -289,14 +289,14 @@ function prepareDMXTable() {
     spots.forEach(function(spot, spotNo) {
         if(!titleDone) {
             document.getElementById("dmxTableHeader").insertAdjacentHTML("beforeend", "<tr></tr>");
-            for(const [chanNo,chan] of Object.entries(spot.fixture.dmx.channels)) {
+            for(const chan of Object.values(spot.fixture.dmx.channels)) {
                 document.getElementById("dmxTableHeader").firstElementChild.insertAdjacentHTML("beforeend", "<td>"+chan.short+"</td>");
             }
             titleDone = true;
         }
 
         document.getElementById("dmxTableBody").insertAdjacentHTML("afterbegin", "<tr></tr>");
-        for(const [chanNo,chan] of Object.entries(spot.fixture.dmx.channels)) {
+        for(const chanNo of Object.keys(spot.fixture.dmx.channels)) {
             document.getElementById("dmxTableBody").firstElementChild.insertAdjacentHTML("beforeend", '<td id="dmx['+spotNo+']['+chanNo+']">x</td>');
         }
     });
@@ -324,21 +324,21 @@ function setSpotStatusOpacity(spotNo, opacity) {
     spotStatusElement.style.opacity = Math.min(1,Math.max(0,opacity)).toString();
 }
 
-function blinkSpotStatus(spotNo, cycleDuration=1) {
-    let spotStatusElement = document.getElementById("spotStatusOverlay["+spotNo+"]");
-    spotStatusElement.style.animation = 'blinkOpacityAnimation '+(Math.max(0.1,parseInt(cycleDuration))).toString()+'s linear infinite';
-}
-
-function stopBlinkSpotStatus(spotNo) {
-    let spotStatusElement = document.getElementById("spotStatusOverlay["+spotNo+"]");
-    spotStatusElement.style.animation = '';
-}
-
-function stopBlinkAllSpotStatus() {
-    spots.forEach(function(spot, spotNo) {
-        stopBlinkSpotStatus(spotNo);
-    });
-}
+// function blinkSpotStatus(spotNo, cycleDuration=1) {
+//     let spotStatusElement = document.getElementById("spotStatusOverlay["+spotNo+"]");
+//     spotStatusElement.style.animation = 'blinkOpacityAnimation '+(Math.max(0.1,parseInt(cycleDuration))).toString()+'s linear infinite';
+// }
+//
+// function stopBlinkSpotStatus(spotNo) {
+//     let spotStatusElement = document.getElementById("spotStatusOverlay["+spotNo+"]");
+//     spotStatusElement.style.animation = '';
+// }
+//
+// function stopBlinkAllSpotStatus() {
+//     spots.forEach(function(spot, spotNo) {
+//         stopBlinkSpotStatus(spotNo);
+//     });
+// }
 
 function showAllSpotStatus() {
     spots.forEach(function(spot, spotNo) {
@@ -395,7 +395,7 @@ function addSpotsToDOM() {
 
 function blinkSpotMarker(spotNo, cycleDuration=1) {
     let spotMarkerElement = document.getElementById("spotMarker["+spotNo+"]");
-    spotMarkerElement.firstElementChild.insertAdjacentHTML("afterbegin", '<animate attributeName="stroke-opacity" values="1;0.2;1" dur="'+(Math.max(0.1,parseInt(cycleDuration)))+'s" repeatCount="indefinite" />')
+    spotMarkerElement.firstElementChild.insertAdjacentHTML("afterbegin", '<animate attributeName="stroke-opacity" values="1;0.2;1" dur="'+(Math.max(0.1,cycleDuration))+'s" repeatCount="indefinite" />')
 }
 
 function stopBlinkSpotMarker(spotNo) {
@@ -459,48 +459,46 @@ function updateWindowSize() {
     r_img_max = 30 * (document.getElementById("webcamDrawArea").offsetWidth / 800);
 }
 
-function enableCaptureKeyboard() {
-    $(window).off("keypress").on('keypress', keyboardInputCallback);
-}
+// function enableCaptureKeyboard() {
+//     $(window).off("keypress").on('keypress', keyboardInputCallback);
+// }
 // function disableCaptureKeyboard() {
 //     $(window).off("keypress");
 // }
-
-function keyboardInputCallback(e) {
-    // console.log("(which:" + (e.which) + ", key:" + (e.key) + ", code:" + (e.code) + ")");
-
-    spots.forEach(function(spot, spotNumber) {
-        switch(e.key) {
-            case spot.control.keyboard.mapping.yInc:
-                spot.moveSpot(0,spot.config.increment.y * spot.control.keyboard.config.modifier);
-                break;
-            case spot.control.keyboard.mapping.xDec:
-                spot.moveSpot(-1 * spot.config.increment.x * spot.control.keyboard.config.modifier,0);
-                break;
-            case spot.control.keyboard.mapping.yDec:
-                spot.moveSpot(0,-1 * spot.config.increment.y * spot.control.keyboard.config.modifier);
-                break;
-            case spot.control.keyboard.mapping.xInc:
-                spot.moveSpot(spot.config.increment.x * spot.control.keyboard.config.modifier,0);
-                break;
-            case spot.control.keyboard.mapping.smaller:
-                spot.resizeSpot(-1 * spot.config.increment.r * spot.control.keyboard.config.modifier);
-                break;
-            case spot.control.keyboard.mapping.bigger:
-                spot.resizeSpot(spot.config.increment.r * spot.control.keyboard.config.modifier);
-                break;
-            case spot.control.keyboard.mapping.dimDown:
-                spot.dimSpot(-1 * spot.config.increment.dim * spot.control.keyboard.config.modifier);
-                break;
-            case spot.control.keyboard.mapping.dimUp:
-                spot.dimSpot(spot.config.increment.dim * spot.control.keyboard.config.modifier);
-                break;
-            case spot.control.keyboard.mapping.snap:
-                spot.snapSpot();
-                break;
-        }
-    });
-}
+// function keyboardInputCallback(e) {
+//     // console.log("(which:" + (e.which) + ", key:" + (e.key) + ", code:" + (e.code) + ")");
+//     spots.forEach(function(spot) {
+//         switch(e.key) {
+//             case spot.control.keyboard.mapping.yInc:
+//                 spot.moveSpot(0,spot.config.increment.y * spot.control.keyboard.config.modifier);
+//                 break;
+//             case spot.control.keyboard.mapping.xDec:
+//                 spot.moveSpot(-1 * spot.config.increment.x * spot.control.keyboard.config.modifier,0);
+//                 break;
+//             case spot.control.keyboard.mapping.yDec:
+//                 spot.moveSpot(0,-1 * spot.config.increment.y * spot.control.keyboard.config.modifier);
+//                 break;
+//             case spot.control.keyboard.mapping.xInc:
+//                 spot.moveSpot(spot.config.increment.x * spot.control.keyboard.config.modifier,0);
+//                 break;
+//             case spot.control.keyboard.mapping.smaller:
+//                 spot.resizeSpot(-1 * spot.config.increment.r * spot.control.keyboard.config.modifier);
+//                 break;
+//             case spot.control.keyboard.mapping.bigger:
+//                 spot.resizeSpot(spot.config.increment.r * spot.control.keyboard.config.modifier);
+//                 break;
+//             case spot.control.keyboard.mapping.dimDown:
+//                 spot.dimSpot(-1 * spot.config.increment.dim * spot.control.keyboard.config.modifier);
+//                 break;
+//             case spot.control.keyboard.mapping.dimUp:
+//                 spot.dimSpot(spot.config.increment.dim * spot.control.keyboard.config.modifier);
+//                 break;
+//             case spot.control.keyboard.mapping.snap:
+//                 spot.snapSpot();
+//                 break;
+//         }
+//     });
+// }
 
 function drawContextMenu(spotNo) {
     let spot = spots[spotNo];
@@ -599,15 +597,14 @@ function setChannelToValue(spotNo,chan,val,macroNo) {
 
 function startRefresh() {
     imageIntervalHandle = window.setInterval(refreshResources, imageRefreshInterval);
-    // console.log("emit interval " + imageIntervalHandle);
 }
-function stopRefresh() {
-    if (imageIntervalHandle === null) {
-        console.log("no interval handle!");
-        return;
-    }
-    window.clearInterval(imageIntervalHandle);
-}
+// function stopRefresh() {
+//     if (imageIntervalHandle === null) {
+//         console.log("no interval handle!");
+//         return;
+//     }
+//     window.clearInterval(imageIntervalHandle);
+// }
 
 function initializeResources() {
     $('.refresh').each(function() {
@@ -674,11 +671,10 @@ function enableGamepadConnectionEventListeners() {
     window.addEventListener("gamepadconnected", gamepadConnectCallback);
     window.addEventListener("gamepaddisconnected", gamepadDisconnectCallback);
 }
-
-function disableGamepadConnectionEventListeners() {
-    window.removeEventListener("gamepadconnected",gamepadConnectCallback);
-    window.removeEventListener("gamepaddisconnected",gamepadDisconnectCallback);
-}
+// function disableGamepadConnectionEventListeners() {
+//     window.removeEventListener("gamepadconnected",gamepadConnectCallback);
+//     window.removeEventListener("gamepaddisconnected",gamepadDisconnectCallback);
+// }
 
 function gamepadConnectCallback(event) {
     conditionalLog("gamepad " + event.gamepad.index + " (" + event.gamepad.id + ") connected");
