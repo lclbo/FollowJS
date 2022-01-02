@@ -207,8 +207,8 @@ function initCalibration(spotNo) {
     calibrationSpotNo = spotNo;
     hideAllSpotMarkerExceptFor(spotNo);
     hideAllSpotStatusExceptFor(spotNo);
-    blinkSpotMarker(spotNo, 2);
-    setSpotStatusOpacity(spotNo, 0.25);
+    // blinkSpotMarker(spotNo, 2);
+    setSpotStatusOpacity(spotNo, 0.3);
     // blinkSpotStatus(spotNo, 2);
     showGridOverlay();
     showCalibrationPoint();
@@ -233,7 +233,7 @@ function skipCalibrationPoint() {
 }
 function endCalibration() {
     // stopBlinkAllSpotStatus();
-    stopBlinkAllSpotMarker();
+    // stopBlinkAllSpotMarker();
     highlightImageCoord(false);
     showAllSpotMarker();
     showAllSpotStatus();
@@ -244,10 +244,11 @@ function endCalibration() {
 }
 
 function exportCalibration() {
-    // console.log(calibrationValues);
     let plainText = "";
-    calibrationValues.forEach(function(elem) {
-        plainText = plainText + elem[0] + "," + elem[1] + ";";
+    calibrationValues.forEach(function(elem, eIdx) {
+        plainText = plainText + "["+elem[0]+" "+elem[1]+"];";
+        if((eIdx+1) % 8 === 0)
+            plainText = plainText + "\n";
     });
 
     let plainBlob = new Blob([plainText], {type: 'application/octet-stream;charset=utf-8'});
@@ -365,7 +366,7 @@ function drawIntervalCallback() {
 function addSpotsToDOM() {
     spots.forEach(function(spot, spotNo) {
         document.getElementById("webcamDrawArea").insertAdjacentHTML('beforeend',
-            '<svg class="spotMarker" id="spotMarker['+spotNo+']">\n' +
+            '<svg class="spotMarker" id="spotMarker['+spotNo+']" width="50" height="50">\n' +
             '   <circle cx="50%" cy="50%" r="50" fill="'+spotMarkerColors[((spotNo-1) % (spotMarkerColors.length))]+'" stroke="'+spotMarkerColors[((spotNo-1) % (spotMarkerColors.length))]+'" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" onclick="toggleContextMenu('+spotNo+');" />\n' +
             '</svg>'
         );
@@ -436,14 +437,21 @@ function drawSpots() {
         let pos_y = spot.config.translation.regression.b[0] + (spot.config.translation.regression.b[1] * x) + (spot.config.translation.regression.b[2] * y) + (spot.config.translation.regression.b[3] * x * y) + (spot.config.translation.regression.b[4] * x2) + (spot.config.translation.regression.b[5] * y2);
 
         let pos_r = spot.state.r;
+        let radius = ((pos_r*(r_img_max-r_img_min)+r_img_min).toString());
 
         let opacity = (spot.state.shutterOpen === true) ? "0.4" : "0";
+
 
         let spotMarkerElement = document.getElementById("spotMarker["+spotNo+"]");
         spotMarkerElement.style.top = ((1-pos_y) * y_img_max).toString()+"px";
         spotMarkerElement.style.left = (pos_x * x_img_max).toString()+"px";
-        spotMarkerElement.firstElementChild.setAttribute("r", (pos_r*(r_img_max-r_img_min)+r_img_min).toString());
-        spotMarkerElement.firstElementChild.setAttribute("fill-opacity", opacity);
+        // spotMarkerElement.style.transform = "translate("+(pos_x*100)+"%,"+((1-pos_y)*100)+"%)";
+        // spotMarkerElement.style.transform = "translate("+((pos_x * x_img_max)-25).toString()+"px"+","+(((1-pos_y) * y_img_max)-25).toString()+"px"+")"; // scale("+(pos_r).toString()+")";
+
+        if(radius !== spotMarkerElement.firstElementChild.getAttribute("r"))
+            spotMarkerElement.firstElementChild.setAttribute("r", radius);
+        if(opacity !== spotMarkerElement.firstElementChild.getAttribute("fill-opacity"))
+            spotMarkerElement.firstElementChild.setAttribute("fill-opacity", opacity);
 
         if(spot.contextMenuState.visible === true)
             updateContextMenu(spotNo);
@@ -455,8 +463,8 @@ function updateWindowSize() {
     y_img_max = document.getElementById("webcamDrawArea").clientHeight;
     // element.offset<Height|Width> includes borders, element.client<Height|Width> does not
 
-    r_img_min = 10 * (document.getElementById("webcamDrawArea").offsetWidth / 800);
-    r_img_max = 30 * (document.getElementById("webcamDrawArea").offsetWidth / 800);
+    r_img_min = 10 * (document.getElementById("webcamDrawArea").clientWidth / 800);
+    r_img_max = 30 * (document.getElementById("webcamDrawArea").clientWidth / 800);
 }
 
 // function enableCaptureKeyboard() {

@@ -58,16 +58,13 @@
 }
 
 #webcamDrawArea {
-    /*width: 800px;*/
-    /*height: 450px;*/
     width: 95vw;
     height: fit-content;
     aspect-ratio: 16/9;
     border: .25rem solid #762551;
     box-sizing: border-box;
     overflow: hidden;
-    position: absolute;
-    /*top: 48px;*/
+    position: relative;
     top: 2.5vw;
     left: 50%;
     transform: translate(-50%,0);
@@ -75,7 +72,6 @@
 
 .gridOverlay {
     position: absolute;
-    /*transform: translate(-50%,-50%);*/
     top: 0;
     left: 0;
     overflow: visible;
@@ -85,8 +81,9 @@
     /*border: 1px solid red;*/
     position: absolute;
     transform: translate(-50%,-50%);
-    top: 0px;
-    left: 0px;
+    transform-origin: center;
+    top: 0;
+    left: 0;
     overflow: visible;
 }
 
