@@ -643,7 +643,7 @@ function refreshResources() {
 /**
  * Refreshes the linked resource (mainly image).
  * For refresh, the src is set to the previous url but with a new ?_=<timestamp> parameter to avoid caching
- * @param rsc element handle, e.g. from getElementByXYZ().
+ * @param rsc element handle, e.g. from getElementById().
  * The resource needs a src-attribute.
  */
 function refreshResource(rsc) {
@@ -651,11 +651,12 @@ function refreshResource(rsc) {
         rsc.data('pc', rsc.data('pc')+1);
         return;
     }
+    // console.log("prescale elapsed ("+rsc.data('pc')+")");
     rsc.data('pc', 0);
 
-    if(rsc.data('isLoading') === 1) { // did not finish loading in time, so slow down interval
+    if(rsc.data('isLoading') === 1) {
         rsc.data('prescale', rsc.data('prescale') + 1);
-        // rsc.attr('title', 'refresh every ' + rsc.data('prescale') + ' loading cycles');
+        rsc.attr('title', 'refresh every ' + rsc.data('prescale') + ' loading cycles');
         rsc.data('refreshRetries', rsc.data('refreshRetries') + 1);
         if(rsc.data('refreshRetries') > retriesThreshold) {
             //console.log('switch to slow retry');
@@ -663,11 +664,17 @@ function refreshResource(rsc) {
             rsc.data('prescale', retryPrescale);
             //TODO: set slow down divider (/10 e.g.), not static prescale
         }
-        return;
+        else {
+            // console.log("still loading, skipping (prescale: "+rsc.data('prescale')+", refreshRetries: "+rsc.data('refreshRetries')+")");
+            return;
+        }
     }
+    rsc.data('refreshRetries', 0);
     rsc.removeClass('slowLoading');
     if(rsc.data('prescale') >= retryPrescale)
         rsc.data('prescale', rsc.data('defaultprescale'));
+
+    // console.log("loading");
 
     let appendix = rsc.data('separator') + "_=" + globalTimestamp.valueOf();
     rsc.attr('src', rsc.data('path') + appendix);
