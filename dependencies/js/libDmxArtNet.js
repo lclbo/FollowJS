@@ -178,21 +178,21 @@ sender.prototype.prepChannel = function (channel, value) {
 };
 
 //SetChannels
-sender.prototype.setChannels = function (start, channels) {
-    let index = start - 1;
-    let length = channels.length;
-    if((start > 512) || (start < 1)) {
-        throw "setChannels: Channel must be between 1 and 512 but actually is " + start + ".";
-    }
-    if((start + length - 1) > 512) {
-        throw "Channel Array exceeds 512";
-    }
-    channels.forEach((cVal,cIdx) => {
-        this.values[index+cIdx-1] = cVal;
+sender.prototype.setChannels = async function (start, channels) {
+    new Promise(resolve => {
+        let index = start - 1;
+        let length = channels.length;
+        if((start > 512) || (start < 1)) {
+            throw "setChannels: Channel must be between 1 and 512 but actually is " + start + ".";
+        }
+        if((start + length - 1) > 512) {
+            throw "Channel Array exceeds 512";
+        }
+        channels.forEach((cVal,cIdx) => {
+            this.values[index+cIdx-1] = cVal;
+        });
+        this.transmit();
     });
-    // this.values.splice(index, channels.length, ...channels);
-
-    this.transmit();
 };
 
 //Fill Channels

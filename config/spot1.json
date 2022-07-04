@@ -1,0 +1,110 @@
+{
+  "fixtureTypeFromLib": "alphaBeam1500",
+  "home": {
+    "x": 0.15874274489947998,
+    "y": 0.7949789885578629,
+    "r": 0,
+    "frost": 1,
+    "focus": 0,
+    "dim": 1,
+    "shutterOpen": false,
+    "colorWheelIndex": 0,
+    "CTOin": false
+  },
+  "increment": {
+    "x": 0.4,
+    "y": 0.6,
+    "r": 10,
+    "frost": 10,
+    "focus": 10,
+    "dim": 25
+  },
+  "boundaries": {
+    "x": {
+      "min": 0,
+      "max": 1
+    },
+    "y": {
+      "min": 0,
+      "max": 1
+    },
+    "r": {
+      "min": 0,
+      "max": 1
+    },
+    "frost": {
+      "min": 0,
+      "max": 1
+    },
+    "focus": {
+      "min": 0,
+      "max": 1
+    },
+    "dim": {
+      "min": 0,
+      "max": 1
+    }
+  },
+  "translation": {
+    "origin": {
+      "x": 0.158,
+      "y": 0.815
+    },
+    "regression": {
+      "x": [
+        -2,
+        4,
+        2
+      ],
+      "y": [
+        -2,
+        4,
+        2
+      ],
+      "a": [
+        5.286352926885731,
+        1.981207700475367,
+        -12.764361971304451,
+        6.003048675340111,
+        0.564190685307892,
+        6.794904917219276
+      ],
+      "b": [
+        -12.494361861164977,
+        10.17501441057749,
+        23.72402105541222,
+        -3.896502665160901,
+        -19.90053741504618,
+        -10.311334885879367
+      ]
+    }
+  },
+  "connection": {
+    "net": 0,
+    "universe": 0,
+    "subnet": 0,
+    "address": 29
+  },
+  "control": {
+    "keyboard": {
+      "config": {
+        "modifier": 0.001
+      },
+      "mapping": {
+        "yInc": "w",
+        "yDec": "s",
+        "xInc": "d",
+        "xDec": "a",
+        "snap": "x",
+        "dimUp": "c",
+        "dimDown": "y",
+        "bigger": "e",
+        "smaller": "q"
+      }
+    },
+    "gamepad": {
+      "typeFromLib": "xboxOneControllerDefault",
+      "mappingFromLib": "legacy"
+    }
+  }
+}

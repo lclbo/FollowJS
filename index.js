@@ -11,7 +11,7 @@ async function createWindow () {
     },
     width: 850,
     height: 600,
-    titleBarStyle: 'hidden',
+    titleBarStyle: 'default',
     autoHideMenuBar: true,
     fullscreen: true
   });

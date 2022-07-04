@@ -1,5 +1,6 @@
 const dmxLib = require('./dependencies/js/libDmxArtNet');
 // import dmxLib from './dependencies/js/libDmxArtNet';
+
 const dmxArtNet = new dmxLib.DmxArtNet({
     oem: 0, //OEM Code from artisticlicense, default to dmxnet OEM.
     sName: "Follow.JS", // 17 char long node description, default to "dmxnet"
@@ -7,19 +8,13 @@ const dmxArtNet = new dmxLib.DmxArtNet({
     hosts: ["127.0.0.1"] // Interfaces to listen to, all by default
 });
 
-const fixtureLib = require('./dependencies/js/fixtureLib');
-const gamepadLib = require('./dependencies/js/gamepadLib');
+global.fixtureLib = require('./dependencies/js/fixtureLib');
+global.gamepadLib = require('./dependencies/js/gamepadLib');
+
 const FollowJSGamepad = require('./dependencies/js/FollowJSGamepad.js');
 const FollowJSSpot = require('./dependencies/js/FollowJSSpot');
 
-// import fixtureLib from './dependencies/js/fixtureLib';
-// import gamepadLib from './dependencies/js/gamepadLib';
-// import FollowJSGamepad from './dependencies/js/FollowJSGamepad.js';
-// import FollowJSSpot from './dependencies/js/FollowJSSpot';
-
 let artNetSenderA = dmxArtNet.newSender({
-    // ip: '127.0.0.1',
-    // ip: '192.168.2.255',
     ip: '10.0.20.255',
     subnet: 15,
     universe: 15,
@@ -52,147 +47,44 @@ let r_img_max = 25;
 let connectedGamepads = new Array(4);
 let spots = [];
 
-// SPOT 1
-let keyboardControlConfig1 = {
-    config: {
-        modifier: 0.001
-    },
-    mapping: {
-        yInc: "w",
-        yDec: "s",
-        xInc: "d",
-        xDec: "a",
-        snap: "x",
-        dimUp: "c",
-        dimDown: "y",
-        bigger: "e",
-        smaller: "q"
-    }
-}
-let gamepadControlConfig1 = {
-    config: gamepadLib.xboxOneControllerDefault.config,
-    mapping: gamepadLib.xboxOneControllerDefault.mapping.legacy
-}
-let spot1config = {
-    home: {
-        x: 0.15874274489947998,
-        y: 0.7949789885578629,
-        r: 0.0,
-        frost: 1.0,
-        focus: 0.0,
-        dim: 1.0,
-        shutterOpen: false,
-        colorWheelIndex: 0,
-        CTOin: false
-    },
-    increment: {
-        x: 0.4,
-        y: 0.6,
-        r: 10,
-        frost: 10,
-        focus: 10,
-        dim: 25
-    },
-    boundaries: {
-        x: {min: 0.0, max: 1.0},
-        y: {min: 0.0, max: 1.0},
-        r: {min: 0.0, max: 1.0},
-        frost: {min: 0.0, max: 1.0},
-        focus: {min: 0.0, max: 1.0},
-        dim: {min: 0.0, max: 1.0}
-    },
-    translation: {
-        origin: {
-            x: 0.158,
-            y: 0.815
-        },
-        regression: {
-            x: [-2,4,2],
-            y: [-2,4,2],
-            a: [5.286352926885731,1.981207700475367,-12.764361971304451,6.003048675340111,0.564190685307892,6.794904917219276],
-            b: [-12.494361861164977,10.175014410577490,23.724021055412220,-3.896502665160901,-19.900537415046180,-10.311334885879367]
+
+function createSpotFromConfigFile(spotNo, filename, artNetSender) {
+    const fs = require("fs");
+    try {
+        let execPath = process.execPath.toLowerCase();
+        let pathStr = "";
+        if(execPath.includes("electron")) {
+            pathStr = "config/"+filename+".json";
         }
-    },
-    connection: {
-        net: 0,
-        universe: 0,
-        subnet: 0,
-        address: 29
-    }
-}
-
-// SPOT 2
-let keyboardControlConfig2 = {
-    config: {
-        modifier: 0.001
-    },
-    mapping: {
-        yInc: "o",
-        yDec: "l",
-        xInc: "ö",
-        xDec: "k",
-        snap: ".",
-        dimUp: "-",
-        dimDown: ",",
-        bigger: "p",
-        smaller: "i"
-    }
-}
-let gamepadControlConfig2 = {
-    config: gamepadLib.xboxOneControllerDefault.config,
-    mapping: gamepadLib.xboxOneControllerDefault.mapping.legacy
-}
-let spot2config = {
-    home: {
-        x: 0.1744328870405229,
-        y: 0.7922748391056202,
-        r: 0.0,
-        frost: 1.0,
-        focus: 0.0,
-        dim: 1.0,
-        shutterOpen: false,
-        colorWheelIndex: 0,
-        CTOin: false
-    },
-    increment: {
-        x: 0.4,
-        y: 0.6,
-        r: 10,
-        frost: 10,
-        focus: 10,
-        dim: 25
-    },
-    boundaries: {
-        x: {min: 0.0, max: 1.0},
-        y: {min: 0.0, max: 1.0},
-        r: {min: 0.05, max: 1.0},
-        frost: {min: 0.0, max: 1.0},
-        focus: {min: 0.0, max: 1.0},
-        dim: {min: 0.0, max: 1.0}
-    },
-    translation: {
-        origin: {
-            x: 0.158,
-            y: 0.815
-        },
-        regression: {
-            x: [-2,4,2],
-            y: [-2,4,2],
-            a: [-4.512185309196076,0.617278171101228,10.264803193293040,7.664305702100285,0.611541786191553,-6.833271061887547],
-            b: [-12.342455707812663,2.664199510752062,24.854793800608206,5.915651056182894,-21.524329487172768,-11.962219725826852]
+        else {
+            pathStr = "" + process.resourcesPath + "/config/" + filename + ".json";
         }
-    },
-    connection: {
-        net: 0,
-        universe: 0,
-        subnet: 0,
-        address: 1
+
+        let jsonStr = fs.readFileSync(pathStr);
+        let spotConfig = JSON.parse(jsonStr.toString());
+        spots[spotNo] = new FollowJSSpot(spotNo, spotConfig, artNetSender);
+    }
+    catch(e) {
+        console.log("createSpotFromConfigFile Error: "+e);
     }
 }
 
-spots[1] = new FollowJSSpot(1,fixtureLib.alphaBeam1500, spot1config, {keyboard: keyboardControlConfig1, gamepad: gamepadControlConfig1}, artNetSenderA);
-spots[2] = new FollowJSSpot(2,fixtureLib.alphaBeam1500, spot2config, {keyboard: keyboardControlConfig2, gamepad: gamepadControlConfig2}, artNetSenderA);
+function storeConfigToFile(obj, name) {
+    const fs = require("fs");
+    try {
+        fs.writeFileSync("config/"+name+".json", JSON.stringify(obj, null, 2));
+    }
+    catch(e) {
+        console.log("storeOverlays Error: "+e);
+    }
 
+}
+
+// spots[1] = new FollowJSSpot(1, spot1config, artNetSenderA);
+// spots[2] = new FollowJSSpot(2, spot2config, artNetSenderA);
+
+createSpotFromConfigFile(1, "spot1", artNetSenderA);
+createSpotFromConfigFile(2, "spot2", artNetSenderA);
 
 function initCalibration(spotNo) {
     if(calibrationActive)
@@ -366,7 +258,7 @@ function drawIntervalCallback() {
 function addSpotsToDOM() {
     spots.forEach(function(spot, spotNo) {
         document.getElementById("webcamDrawArea").insertAdjacentHTML('beforeend',
-            '<svg class="spotMarker" id="spotMarker['+spotNo+']" width="50" height="50">\n' +
+            '<svg class="spotMarker spotMarkerRotate" id="spotMarker['+spotNo+']" width="50" height="50">\n' +
             '   <circle cx="50%" cy="50%" r="50" fill="'+spotMarkerColors[((spotNo-1) % (spotMarkerColors.length))]+'" stroke="'+spotMarkerColors[((spotNo-1) % (spotMarkerColors.length))]+'" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" onclick="toggleContextMenu('+spotNo+');" />\n' +
             '</svg>'
         );
@@ -467,46 +359,46 @@ function updateWindowSize() {
     r_img_max = 30 * (document.getElementById("webcamDrawArea").clientWidth / 800);
 }
 
-// function enableCaptureKeyboard() {
-//     $(window).off("keypress").on('keypress', keyboardInputCallback);
-// }
-// function disableCaptureKeyboard() {
-//     $(window).off("keypress");
-// }
-// function keyboardInputCallback(e) {
-//     // console.log("(which:" + (e.which) + ", key:" + (e.key) + ", code:" + (e.code) + ")");
-//     spots.forEach(function(spot) {
-//         switch(e.key) {
-//             case spot.control.keyboard.mapping.yInc:
-//                 spot.moveSpot(0,spot.config.increment.y * spot.control.keyboard.config.modifier);
-//                 break;
-//             case spot.control.keyboard.mapping.xDec:
-//                 spot.moveSpot(-1 * spot.config.increment.x * spot.control.keyboard.config.modifier,0);
-//                 break;
-//             case spot.control.keyboard.mapping.yDec:
-//                 spot.moveSpot(0,-1 * spot.config.increment.y * spot.control.keyboard.config.modifier);
-//                 break;
-//             case spot.control.keyboard.mapping.xInc:
-//                 spot.moveSpot(spot.config.increment.x * spot.control.keyboard.config.modifier,0);
-//                 break;
-//             case spot.control.keyboard.mapping.smaller:
-//                 spot.resizeSpot(-1 * spot.config.increment.r * spot.control.keyboard.config.modifier);
-//                 break;
-//             case spot.control.keyboard.mapping.bigger:
-//                 spot.resizeSpot(spot.config.increment.r * spot.control.keyboard.config.modifier);
-//                 break;
-//             case spot.control.keyboard.mapping.dimDown:
-//                 spot.dimSpot(-1 * spot.config.increment.dim * spot.control.keyboard.config.modifier);
-//                 break;
-//             case spot.control.keyboard.mapping.dimUp:
-//                 spot.dimSpot(spot.config.increment.dim * spot.control.keyboard.config.modifier);
-//                 break;
-//             case spot.control.keyboard.mapping.snap:
-//                 spot.snapSpot();
-//                 break;
-//         }
-//     });
-// }
+function enableCaptureKeyboard() {
+    $(window).off("keydown").on('keydown', keyboardInputCallback);
+}
+function disableCaptureKeyboard() {
+    $(window).off("keydown");
+}
+function keyboardInputCallback(e) {
+    // console.log("(which:" + (e.which) + ", key:" + (e.key) + ", code:" + (e.code) + ")");
+    spots.forEach(function(spot) {
+        switch(e.key) {
+            case spot.control.keyboard.mapping.yInc:
+                spot.moveSpot(0,spot.config.increment.y * spot.control.keyboard.config.modifier);
+                break;
+            case spot.control.keyboard.mapping.xDec:
+                spot.moveSpot(-1 * spot.config.increment.x * spot.control.keyboard.config.modifier,0);
+                break;
+            case spot.control.keyboard.mapping.yDec:
+                spot.moveSpot(0,-1 * spot.config.increment.y * spot.control.keyboard.config.modifier);
+                break;
+            case spot.control.keyboard.mapping.xInc:
+                spot.moveSpot(spot.config.increment.x * spot.control.keyboard.config.modifier,0);
+                break;
+            case spot.control.keyboard.mapping.smaller:
+                spot.resizeSpot(-1 * spot.config.increment.r * spot.control.keyboard.config.modifier);
+                break;
+            case spot.control.keyboard.mapping.bigger:
+                spot.resizeSpot(spot.config.increment.r * spot.control.keyboard.config.modifier);
+                break;
+            case spot.control.keyboard.mapping.dimDown:
+                spot.dimSpot(-1 * spot.config.increment.dim * spot.control.keyboard.config.modifier);
+                break;
+            case spot.control.keyboard.mapping.dimUp:
+                spot.dimSpot(spot.config.increment.dim * spot.control.keyboard.config.modifier);
+                break;
+            case spot.control.keyboard.mapping.snap:
+                spot.snapSpot();
+                break;
+        }
+    });
+}
 
 function drawContextMenu(spotNo) {
     let spot = spots[spotNo];
@@ -562,10 +454,12 @@ function toggleContextMenu(spotNo) {
         spotContextMenuElement.innerHTML = "";
     }
     else {
-        spots[spotNo].contextMenuState.visible = true;
-        spots[spotNo].contextMenuState.selectedIndex = 0;
-        drawContextMenu(spotNo);
-        updateContextMenu(spotNo);
+        if(!spots[spotNo].contextMenuState.locked) {
+            spots[spotNo].contextMenuState.visible = true;
+            spots[spotNo].contextMenuState.selectedIndex = 0;
+            drawContextMenu(spotNo);
+            updateContextMenu(spotNo);
+        }
     }
 }
 
@@ -581,6 +475,14 @@ function hideContextMenu(spotNo) {
     spotContextMenuElement.innerHTML = "";
 }
 
+function lockContextMenu(spotNo) {
+    spots[spotNo].contextMenuState.locked = true;
+}
+
+function unlockContextMenu(spotNo) {
+    spots[spotNo].contextMenuState.locked = false;
+}
+
 function executeMacro(spotNo, macroNo) {
     let macro = spots[spotNo].fixture.dmx.macros[macroNo];
 
@@ -592,8 +494,11 @@ function executeMacro(spotNo, macroNo) {
     window.setTimeout(setChannelToValue, (Number.parseInt(macro.hold)*1000), spotNo, macro.channel, oldValue, macroNo);
     // window.setTimeout(hideContextMenu, (Number.parseInt(macro.hold)*1000) + 500, spotNo);
     hideContextMenu(spotNo);
+    lockContextMenu(spotNo);
+    window.setTimeout(unlockContextMenu, (Number.parseInt(macro.hold)*1000) + 500, spotNo);
     window.setTimeout(stopBlinkSpotMarker, (Number.parseInt(macro.hold)*1000) + 500, spotNo);
     spots[spotNo].sendDMX();
+    window.setTimeout(()=>{spots[spotNo].sendDMX();}, 500);
 }
 
 function setChannelToValue(spotNo,chan,val,macroNo) {
@@ -656,7 +561,9 @@ function refreshResource(rsc) {
 
     if(rsc.data('isLoading') === 1) {
         rsc.data('prescale', rsc.data('prescale') + 1);
-        rsc.attr('title', 'refresh every ' + rsc.data('prescale') + ' loading cycles');
+        // rsc.attr('title', 'refresh every ' + rsc.data('prescale') + ' loading cycles');
+        // rsc.attr('title', '' + (1000 / (rsc.data('prescale') * imageRefreshInterval)) + ' fps');
+        rsc.attr('title', '');
         rsc.data('refreshRetries', rsc.data('refreshRetries') + 1);
         if(rsc.data('refreshRetries') > retriesThreshold) {
             //console.log('switch to slow retry');
@@ -826,8 +733,10 @@ function gamepadReadButtons() {
                     if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.contextMenuDown)
                         gamepadObject.assignedSpot.scrollContextMenu(1);
 
-                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.contextMenuSelect)
-                        executeMacro(gamepadObject.assignedSpot.spotNumber, gamepadObject.assignedSpot.contextMenuState.selectedIndex);
+                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.contextMenuSelect) {
+                        if(!gamepadObject.assignedSpot.contextMenuState.locked)
+                            executeMacro(gamepadObject.assignedSpot.spotNumber, gamepadObject.assignedSpot.contextMenuState.selectedIndex);
+                    }
 
                     if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.contextMenuCancel)
                         hideContextMenu(gamepadObject.assignedSpot.spotNumber);
@@ -861,12 +770,14 @@ function conditionalLog(msg) {
 $(function() {
     // ready function
     conditionalLog("execute ready function");
+    // storeConfigToFile(spot1config, "spot1");
+    // storeConfigToFile(spot2config, "spot2");
     updateWindowSize();
     initializeResources();
     startRefresh();
     if(drawIntervalHandle === null)
         drawIntervalHandle = window.setInterval(drawIntervalCallback,25); //15
-    // enableCaptureKeyboard();
+    enableCaptureKeyboard();
     enableGamepadConnectionEventListeners();
     addSpotsToDOM();
     prepareDMXTable();
