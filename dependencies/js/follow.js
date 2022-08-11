@@ -1,5 +1,4 @@
 const dmxLib = require('./dependencies/js/libDmxArtNet');
-// import dmxLib from './dependencies/js/libDmxArtNet';
 
 const dmxArtNet = new dmxLib.DmxArtNet({
     oem: 0, //OEM Code from artisticlicense, default to dmxnet OEM.
@@ -8,11 +7,17 @@ const dmxArtNet = new dmxLib.DmxArtNet({
     hosts: ["127.0.0.1"] // Interfaces to listen to, all by default
 });
 
-global.fixtureLib = require('./dependencies/js/fixtureLib');
-global.gamepadLib = require('./dependencies/js/gamepadLib');
+global.systemConf = loadConfigFromFile("systemConf");
+global.fixtureLib = loadConfigFromFile("fixtureLib");
+global.gamepadLib = loadConfigFromFile("gamepadLib");
 
 const FollowJSGamepad = require('./dependencies/js/FollowJSGamepad.js');
 const FollowJSSpot = require('./dependencies/js/FollowJSSpot');
+const fs = require("fs");
+
+if(global.systemConf === undefined || global.systemConf === null) throw new Error("System configuration could not be loaded!");
+if(global.fixtureLib === undefined || global.fixtureLib === null) throw new Error("Fixture Library could not be loaded!");
+if(global.gamepadLib === undefined || global.gamepadLib === null) throw new Error("Gamepad Library could not be loaded!");
 
 let artNetSenderA = dmxArtNet.newSender({
     ip: '10.0.20.255',
@@ -22,69 +27,99 @@ let artNetSenderA = dmxArtNet.newSender({
 });
 
 let gamepadIntervalHandle = null;
-
 let globalTimestamp = new Date();
-
-let spotMarkerColors = ["green", "blue", "purple", "yellow"];
-
-let imageRefreshInterval = 50;
-let imageIntervalHandle = null;
-const retryPrescale = 2000 / imageRefreshInterval;
-const retriesThreshold = 50;
-
-let drawIntervalHandle = null;
 
 let calibrationActive = false;
 let calibrationSpotNo = undefined;
 let calibrationValues = new Array(9*9);
 let calibrationStep = 1;
 
-let x_img_max = 800;
-let y_img_max = 450;
-let r_img_min = 8;
-let r_img_max = 25;
+let x_img_max, y_img_max, r_img_min, r_img_max;
 
 let connectedGamepads = new Array(4);
 let spots = [];
 
+createAllSpotsFromConfigFiles();
 
-function createSpotFromConfigFile(spotNo, filename, artNetSender) {
+
+function createAllSpotsFromConfigFiles() {
+    let numberOfSpotsCreated = 0;
     const fs = require("fs");
     try {
         let execPath = process.execPath.toLowerCase();
         let pathStr = "";
         if(execPath.includes("electron")) {
-            pathStr = "config/"+filename+".json";
+            pathStr = "config/spots";
         }
         else {
-            pathStr = "" + process.resourcesPath + "/config/" + filename + ".json";
+            pathStr = "" + process.resourcesPath + "/config/spots";
+        }
+
+       fs.readdir(pathStr, (err,files) => {
+           if(!err) {
+               files.forEach((file)=> {
+                   if(file.endsWith(".json")) {
+                       let shortFilename = file.substring(0, file.lastIndexOf(".json"));
+                       // console.log(shortFilename);
+                       createSpotFromConfigFile(shortFilename, artNetSenderA);
+                       numberOfSpotsCreated++;
+                   }
+               });
+           }
+       });
+    }
+    catch(e) {
+        console.log("load Config Error: "+e);
+        return null;
+    }
+
+    return numberOfSpotsCreated;
+}
+
+function createSpotFromConfigFile(filename, artNetSender) {
+    const fs = require("fs");
+    try {
+        let execPath = process.execPath.toLowerCase();
+        let pathStr = "";
+        if(execPath.includes("electron")) {
+            pathStr = "config/spots/"+filename+".json";
+        }
+        else {
+            pathStr = "" + process.resourcesPath + "/config/spots/" + filename + ".json";
         }
 
         let jsonStr = fs.readFileSync(pathStr);
         let spotConfig = JSON.parse(jsonStr.toString());
-        spots[spotNo] = new FollowJSSpot(spotNo, spotConfig, artNetSender);
+        let nextFreeSpotNo = Object.keys(spots).length + 1;
+
+        spots[nextFreeSpotNo] = new FollowJSSpot(nextFreeSpotNo, spotConfig, artNetSender);
     }
     catch(e) {
         console.log("createSpotFromConfigFile Error: "+e);
     }
 }
 
-function storeConfigToFile(obj, name) {
+function loadConfigFromFile(filename) {
     const fs = require("fs");
     try {
-        fs.writeFileSync("config/"+name+".json", JSON.stringify(obj, null, 2));
+        let execPath = process.execPath.toLowerCase();
+        let pathStr = "";
+        if(execPath.includes("electron")) {
+            pathStr = "config";
+        }
+        else {
+            pathStr = "" + process.resourcesPath + "/config";
+        }
+
+        let configStr = fs.readFileSync(""+pathStr+"/"+filename+".json");
+
+        return JSON.parse(configStr.toString());
     }
     catch(e) {
-        console.log("storeOverlays Error: "+e);
+        console.log("load Config Error: "+e);
+        return null;
     }
-
 }
-
-// spots[1] = new FollowJSSpot(1, spot1config, artNetSenderA);
-// spots[2] = new FollowJSSpot(2, spot2config, artNetSenderA);
-
-createSpotFromConfigFile(1, "spot1", artNetSenderA);
-createSpotFromConfigFile(2, "spot2", artNetSenderA);
 
 function initCalibration(spotNo) {
     if(calibrationActive)
@@ -124,8 +159,6 @@ function skipCalibrationPoint() {
     }
 }
 function endCalibration() {
-    // stopBlinkAllSpotStatus();
-    // stopBlinkAllSpotMarker();
     highlightImageCoord(false);
     showAllSpotMarker();
     showAllSpotStatus();
@@ -148,7 +181,7 @@ function exportCalibration() {
     let a = document.createElement("a");
     a.download = 'calibration-'+globalTimestamp.getFullYear()+'-'+(globalTimestamp.getMonth()+1)+'-'+globalTimestamp.getDate()+'-spot'+calibrationSpotNo+'.csv';
     a.href = plainLink;
-    a.innerHTML = "<button class='btn btn-primary'>Download Calibration</button>";
+    a.innerHTML = "<button class='button-green'>Download Calibration</button>";
     document.getElementById('downloadButtonLanding').appendChild(a);
     document.getElementById('cancelCalibrationButton').classList.add("hidden");
 }
@@ -217,22 +250,6 @@ function setSpotStatusOpacity(spotNo, opacity) {
     spotStatusElement.style.opacity = Math.min(1,Math.max(0,opacity)).toString();
 }
 
-// function blinkSpotStatus(spotNo, cycleDuration=1) {
-//     let spotStatusElement = document.getElementById("spotStatusOverlay["+spotNo+"]");
-//     spotStatusElement.style.animation = 'blinkOpacityAnimation '+(Math.max(0.1,parseInt(cycleDuration))).toString()+'s linear infinite';
-// }
-//
-// function stopBlinkSpotStatus(spotNo) {
-//     let spotStatusElement = document.getElementById("spotStatusOverlay["+spotNo+"]");
-//     spotStatusElement.style.animation = '';
-// }
-//
-// function stopBlinkAllSpotStatus() {
-//     spots.forEach(function(spot, spotNo) {
-//         stopBlinkSpotStatus(spotNo);
-//     });
-// }
-
 function showAllSpotStatus() {
     spots.forEach(function(spot, spotNo) {
         let spotStatusElement = document.getElementById("spotStatusOverlay["+spotNo+"]");
@@ -249,26 +266,27 @@ function hideAllSpotStatusExceptFor(dontHideSpotNo) {
     });
 }
 
-function drawIntervalCallback() {
+function drawAnimationFrameCallback() {
     drawSpots();
     printDMX();
     printAllSpotStatus();
+    window.requestAnimationFrame(drawAnimationFrameCallback);
 }
 
 function addSpotsToDOM() {
     spots.forEach(function(spot, spotNo) {
         document.getElementById("webcamDrawArea").insertAdjacentHTML('beforeend',
-            '<svg class="spotMarker spotMarkerRotate" id="spotMarker['+spotNo+']" width="50" height="50">\n' +
-            '   <circle cx="50%" cy="50%" r="50" fill="'+spotMarkerColors[((spotNo-1) % (spotMarkerColors.length))]+'" stroke="'+spotMarkerColors[((spotNo-1) % (spotMarkerColors.length))]+'" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" onclick="toggleContextMenu('+spotNo+');" />\n' +
+            '<svg class="spotMarker" id="spotMarker['+spotNo+']" width="50" height="50">\n' +
+            '   <circle cx="50%" cy="50%" r="50" fill="'+global.systemConf.spotMarkerColors[((spotNo-1) % (global.systemConf.spotMarkerColors.length))]+'" stroke="'+global.systemConf.spotMarkerColors[((spotNo-1) % (global.systemConf.spotMarkerColors.length))]+'" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" onclick="toggleContextMenu('+spotNo+');" />\n' +
             '</svg>'
         );
 
         document.getElementById("webcamDrawArea").insertAdjacentHTML('beforeend',
-            '<div class="spotContextMenu row-cols-1 text-start" id="spotContextMenu['+spotNo+']"></div>'
+            '<div class="spotContextMenu" id="spotContextMenu['+spotNo+']"></div>'
         );
 
         document.getElementById("spotStatusOverlayArea").insertAdjacentHTML('beforeend',
-            '<div id="spotStatusOverlay['+spotNo+']" class="spotStatusOverlayGroup col p-0 mx-2" style="border-color: '+spotMarkerColors[((spotNo-1) % (spotMarkerColors.length))]+';">\n' +
+            '<div id="spotStatusOverlay['+spotNo+']" class="spotStatusOverlayGroup" style="border-color: '+global.systemConf.spotMarkerColors[((spotNo-1) % (global.systemConf.spotMarkerColors.length))]+';">\n' +
             '   <div class="spotStatusGauge" id="gauge['+spotNo+'][dim]">\n' +
             '       <div class="spotStatusOverlayDim">Dimmer</div>\n' +
             '   </div>\n' +
@@ -360,10 +378,11 @@ function updateWindowSize() {
 }
 
 function enableCaptureKeyboard() {
-    $(window).off("keydown").on('keydown', keyboardInputCallback);
+    window.removeEventListener('keydown', keyboardInputCallback);
+    window.addEventListener('keydown', keyboardInputCallback);
 }
 function disableCaptureKeyboard() {
-    $(window).off("keydown");
+    window.removeEventListener('keydown', keyboardInputCallback);
 }
 function keyboardInputCallback(e) {
     // console.log("(which:" + (e.which) + ", key:" + (e.key) + ", code:" + (e.code) + ")");
@@ -410,14 +429,14 @@ function drawContextMenu(spotNo) {
             selectClass = "spotContextMenuHighlight";
 
         document.getElementById("spotContextMenu["+spotNo+"]").insertAdjacentHTML("beforeend", '' +
-            '<div class="col px-2 '+selectClass+'" id="macroButton['+spotNo+']['+key+']" onclick="executeMacro('+spotNo+','+key+')">' +
+            '<div class="'+selectClass+'" id="macroButton['+spotNo+']['+key+']" onclick="executeMacro('+spotNo+','+key+')">' +
             // '<span class="spinner-grow spinner-grow-sm hiddenVis" role="status"></span>&nbsp;' +
             macro.short+'' +
             '</div>');
     });
 
-    spotContextMenuElement.insertAdjacentHTML("beforeend", '<div class="col px-2" id="calib['+spotNo+']" onclick="initCalibration('+spotNo+')">Calibrate</div>');
-    spotContextMenuElement.insertAdjacentHTML("afterbegin", '<div class="col px-2 border-bottom fw-bold" id="calib['+spotNo+']">Spot #'+spotNo+'</div>');
+    spotContextMenuElement.insertAdjacentHTML("beforeend", '<div id="calib['+spotNo+']" onclick="initCalibration('+spotNo+')">Calibrate</div>');
+    spotContextMenuElement.insertAdjacentHTML("afterbegin", '<div>Spot #'+spotNo+'</div>');
 }
 
 function updateContextMenu(spotNo) {
@@ -507,86 +526,155 @@ function setChannelToValue(spotNo,chan,val,macroNo) {
     spots[spotNo].sendDMX();
 }
 
+function initializeImage() {
+    let img = document.getElementById("mainWebcamImage");
+    img.setAttribute("data-src", systemConf.image.imageSource);
 
-function startRefresh() {
-    imageIntervalHandle = window.setInterval(refreshResources, imageRefreshInterval);
+    switch(systemConf.image.imageType.toLowerCase()) {
+        case "mjpeg":
+            window.requestAnimationFrame(() => {refreshMjpegImageResource(img)});
+            break;
+        case "jpeg":
+            img.setAttribute("data-default-prescale", systemConf.image.imageRateDivider);
+            initializeStaticImageResource(img);
+            window.requestAnimationFrame(() => {refreshStaticImageResource(img)});
+            // window.requestAnimationFrame(() => {refreshStaticImageResource(img)});
+            break;
+        default:
+            throw Error("unknown systemConf.image.type");
+    }
 }
-// function stopRefresh() {
-//     if (imageIntervalHandle === null) {
-//         console.log("no interval handle!");
-//         return;
-//     }
-//     window.clearInterval(imageIntervalHandle);
-// }
 
-function initializeResources() {
-    $('.refresh').each(function() {
-        initializeResource($(this));
-    });
-}
+
 /**
  * Initializes the data-fields needed for refresh handling
  * @param rsc element handle, e.g. from getElementByXYZ()
  */
-function initializeResource(rsc) {
-    rsc.data('isLoading', 0);
-    rsc.data('refreshRetries', 0);
-    rsc.data('pc', 0);
-    rsc.data('pc', rsc.data('defaultprescale') - 1);
-    rsc.data('prescale', rsc.data('defaultprescale'));
-    rsc.data('separator', ((rsc.data('path').includes('?')) ? '&' : '?'));
+function initializeStaticImageResource(rsc) {
+    if(!('src' in rsc.dataset) || !('defaultPrescale' in rsc.dataset)) {
+        console.log("cound not initialize, missing src or default-prescale!");
+    }
+    else {
+        rsc.setAttribute('data-is-loading', "empty");
+        rsc.setAttribute('data-refresh-retries', 0);
+        rsc.setAttribute('data-pc', (rsc.dataset.defaultPrescale - 1));
+        rsc.setAttribute('data-prescale', rsc.dataset.defaultPrescale);
 
-    rsc.attr('onload', "$(this).data('isLoading', 0);");
+        if(!('separator' in rsc.dataset))
+            rsc.setAttribute('data-separator', ((rsc.dataset.src.includes('?')) ? '&' : '?'));
+
+        rsc.onload = (event) => {event.target.dataset.isLoading = 'doneLoading';};
+    }
 }
 
-function refreshResources() {
-    globalTimestamp = new Date();
-    $('.refresh').each(function() {
-        refreshResource($(this));
-    });
-}
 /**
  * Refreshes the linked resource (mainly image).
  * For refresh, the src is set to the previous url but with a new ?_=<timestamp> parameter to avoid caching
  * @param rsc element handle, e.g. from getElementById().
  * The resource needs a src-attribute.
  */
-function refreshResource(rsc) {
-    if(rsc.data('pc') < rsc.data('prescale')) {
-        rsc.data('pc', rsc.data('pc')+1);
+function refreshStaticImageResource(rsc) {
+    window.requestAnimationFrame(()=>{refreshStaticImageResource(rsc);});
+    if(rsc.dataset.pc < rsc.dataset.prescale) {
+        rsc.dataset.pc++;
         return;
     }
-    // console.log("prescale elapsed ("+rsc.data('pc')+")");
-    rsc.data('pc', 0);
+    // console.log("prescale elapsed");
+    rsc.dataset.pc = 0;
 
-    if(rsc.data('isLoading') === 1) {
-        rsc.data('prescale', rsc.data('prescale') + 1);
-        // rsc.attr('title', 'refresh every ' + rsc.data('prescale') + ' loading cycles');
-        // rsc.attr('title', '' + (1000 / (rsc.data('prescale') * imageRefreshInterval)) + ' fps');
-        rsc.attr('title', '');
-        rsc.data('refreshRetries', rsc.data('refreshRetries') + 1);
-        if(rsc.data('refreshRetries') > retriesThreshold) {
+    if(rsc.dataset.isLoading === "loading") {
+        rsc.dataset.prescale++;
+        // rsc.setAttribute('title', 'refresh every ' + rsc.dataset.prescale + ' loading cycles');
+        // rsc.attr('title', '');
+        rsc.dataset.refreshRetries++;
+        if(rsc.dataset.refreshRetries > 50) { //if data did not load in time for 50 rounds, the source is probably bad
             //console.log('switch to slow retry');
-            rsc.addClass('slowLoading');
-            rsc.data('prescale', retryPrescale);
-            //TODO: set slow down divider (/10 e.g.), not static prescale
+            rsc.classList.add('slowLoading');
+            rsc.dataset.prescale = (20 * rsc.dataset.defaultPrescale);
         }
         else {
-            // console.log("still loading, skipping (prescale: "+rsc.data('prescale')+", refreshRetries: "+rsc.data('refreshRetries')+")");
+            // console.log("still busy loading, skipping reloading");
             return;
         }
     }
-    rsc.data('refreshRetries', 0);
-    rsc.removeClass('slowLoading');
-    if(rsc.data('prescale') >= retryPrescale)
-        rsc.data('prescale', rsc.data('defaultprescale'));
+    rsc.dataset.refreshRetries = 0;
+    rsc.classList.remove('slowLoading');
+    if(rsc.dataset.prescale >= (20 * rsc.dataset.defaultPrescale))
+        rsc.dataset.prescale = rsc.dataset.defaultPrescale;
 
-    // console.log("loading");
+    // console.log("loading new image");
 
-    let appendix = rsc.data('separator') + "_=" + globalTimestamp.valueOf();
-    rsc.attr('src', rsc.data('path') + appendix);
+    let appendix = "" + rsc.dataset.separator + "_=" + (new Date().valueOf());
+    rsc.setAttribute('src', "" + rsc.dataset.src + appendix);
 
-    rsc.data('isLoading', 1);
+    rsc.dataset.isLoading = "loading";
+}
+
+//based on https://github.com/aruntj/mjpeg-readable-stream
+function refreshMjpegImageResource(rsc) {
+    fetch(rsc.dataset.src)
+        .then((resp) => {
+            // console.log(resp);
+            if (!resp.ok) {
+                throw Error("fetch response !ok");
+            }
+            if(!resp.body) {
+                throw Error("response body not supported");
+            }
+
+            const reader = resp.body.getReader();
+            let headerString = '';
+            let contentLength = -1;
+            let bodyBytes = 0;
+            let imageBuffer = null;
+
+            const getLength = (headerString) => {
+                let contentLength = -1;
+                headerString.split('\n').forEach((headerLine) => {
+                    if(headerLine.toLowerCase().includes("content-length")) {
+                        contentLength = headerLine.substring(headerLine.lastIndexOf(":")+1).trim();
+                    }
+                });
+                return contentLength;
+            };
+
+            const readMjpeg = () => {
+                reader.read().then(({done, value}) => {
+                    if (done) {
+                        return;
+                    }
+                    for (let byte = 0; byte < value.length; byte++) {
+                        if ((value[byte] === 0xFF) && (byte+1 < value.length) && (value[byte + 1] === 0xD8)) {
+                            contentLength = getLength(headerString);
+                            imageBuffer = new Uint8Array(new ArrayBuffer(contentLength));
+                        }
+                        if (contentLength <= 0) {
+                            headerString += String.fromCharCode(value[byte]);
+                        } else if (bodyBytes < contentLength) {
+                            imageBuffer[bodyBytes] = value[byte];
+                            bodyBytes++;
+                        } else {
+                            let imageBlobUrl = URL.createObjectURL(new Blob([imageBuffer], {type: 'image/jpeg'}));
+                            rsc.src = imageBlobUrl;
+
+                            contentLength = 0;
+                            bodyBytes = 0;
+                            headerString = '';
+                        }
+                    }
+                    // readMjpeg();
+                    window.requestAnimationFrame(readMjpeg);
+                }).catch(error => {
+                    console.log(error);
+                })
+            }
+            // readMjpeg();
+            window.requestAnimationFrame(readMjpeg);
+        })
+        .catch(() => {
+            throw Error("Fetch error!");
+        });
+
 }
 
 function enableGamepadConnectionEventListeners() {
@@ -640,6 +728,7 @@ function gamepadCyclicReader() {
     }
     gamepadReadAxes();
     gamepadReadButtons();
+    // window.requestAnimationFrame(gamepadCyclicReader);
 }
 
 function gamepadReadAxes() {
@@ -763,22 +852,41 @@ function gamepadReadButtons() {
     });
 }
 
+function populateVersionInfoStringInFooter() {
+    let versionString = "";
+    try {
+        let searchString = global.location.search;
+        let searchParams = new URLSearchParams(searchString);
+        let app = searchParams.get("app");
+        let ver = searchParams.get("ver");
+        versionString = "v"+ver;
+        // versionString = "" + app + ", v"+ver;
+    }
+    catch(e) {
+        console.log("Version Info Error: "+e);
+        versionString = "(Error decoding version information. Sorry.)";
+    }
+    document.getElementById("versionInfo").innerText = versionString;
+}
+
 function conditionalLog(msg) {
     console.log(msg);
 }
 
-$(function() {
+document.addEventListener('DOMContentLoaded', function () {
     // ready function
     conditionalLog("execute ready function");
-    // storeConfigToFile(spot1config, "spot1");
-    // storeConfigToFile(spot2config, "spot2");
+    populateVersionInfoStringInFooter();
+
     updateWindowSize();
-    initializeResources();
-    startRefresh();
-    if(drawIntervalHandle === null)
-        drawIntervalHandle = window.setInterval(drawIntervalCallback,25); //15
+    initializeImage();
+
     enableCaptureKeyboard();
     enableGamepadConnectionEventListeners();
+
     addSpotsToDOM();
     prepareDMXTable();
+
+    window.requestAnimationFrame(drawAnimationFrameCallback);
+
 });

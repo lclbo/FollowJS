@@ -5,21 +5,31 @@ let winRef;
 
 async function createWindow () {
   winRef = new BrowserWindow({
+    backgroundColor: 'teal',
+    show: false,
     webPreferences: {
+      devTools: true,
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      spellcheck: false
     },
     width: 850,
     height: 600,
+    resizable: true,
     titleBarStyle: 'default',
     autoHideMenuBar: true,
-    fullscreen: true
+    fullscreen: true,
+    fullscreenable: true
   });
   // winRef.setAlwaysOnTop(true);
+  winRef.webContents.openDevTools();
 
-  await winRef.loadFile(path.join(__dirname, 'main.html'));
+  await winRef.loadFile(path.join(__dirname, 'main.html'), {query: {"app": app.getName(), "ver": app.getVersion()}});
 
-  // winRef.openDevTools();
+  winRef.once('ready-to-show', () => {
+    winRef.show();
+  });
+
 
   winRef.on('closed', () => {
     winRef = null;

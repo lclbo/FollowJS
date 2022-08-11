@@ -3,98 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link rel="stylesheet" href="dependencies/css/lib/bootstrap.css">
+<!--    <link rel="stylesheet" href="dependencies/css/lib/bootstrap.css">-->
     <link rel="stylesheet" href="dependencies/css/follow.css">
     <script>
         window.nodeRequire = require;
         delete window.exports;
         delete window.module;
     </script>
-    <script src="dependencies/js/lib/jquery-3.6.0.js"></script>
-    <title>FollowSpot Control</title>
+<!--    <script src="dependencies/js/lib/jquery-3.6.0.js"></script>-->
+    <title>FollowJS</title>
 </head>
 <body onresize="updateWindowSize()">
-    <div class="settingsFooter fixed-bottom float-right hidden">
-        <div id="settingsFooterContent" class="d-flex flex-column text-center settingsContent text-dark">
-            <div class="pt-1">
-                <label for="midiInput" class="h4">MIDI Interface</label>
-            </div>
-            <div class="pt-1">
-                <select id="midiInput">
-                    <option value="0" selected disabled>-no MIDI-In-</option>
-                </select>
-            </div>
-            <div class="pt-1">
-                <button class="btn btn-success" onClick="setMidiInputAndRun();">select and start</button>
-            </div>
-            <div class="text-warning text-monospace" id="midi-debug"></div>
-            <div class="text-danger text-monospace">Last MIDI message on active interface:</div>
-            <div class="text-danger text-monospace" id="midimsg">none</div>
-            <div class="pl-2 fixed-bottom text-black-50 text-left">QLCue v1.0.5 <small>lclausing.com, 2021</small></div>
-
-        </div>
-    </div>
-<!--    <div id="footerToggle" class="pr-2 fixed-bottom text-black-50 text-right" onclick="toggleFooter();">X</div>-->
-
-    <div id="titlebar" class="text-center">Follow.JS</div>
-
-    <div class="container-fluid bg-dark align-content-center align-items-center text-center">
+    <div id="outerArea">
         <div id="webcamDrawArea">
             <div id="controllerConnectOverlay" class="cameraImageHugeWarningTextOverlay">Waiting for controller…</div>
-            <img src="placeholder.jpeg" onclick="hideAllContextMenus();" class="webcam" style="position: relative" alt="Placeholder">
-            <img src="#" onclick="hideAllContextMenus();" style="position: absolute; top: 0; left: 0;" alt="Camera image will be here" class="webcam refresh" data-rscIndex="1" data-defaultPrescale="2" data-type="live" data-path="http://zoneminder.wbko.net/zm/cgi-bin/nph-zms?scale=100&width=1280px&height=720px&mode=jpeg&maxfps=20&monitor=1&user=status&pass=status">
+<!--            <img src="placeholder.jpeg" onclick="hideAllContextMenus();" class="webcam" style="position: relative" alt="Placeholder">-->
+<!--            <img src="#" onclick="hideAllContextMenus();" style="position: absolute; top: 0; left: 0;" alt="Camera image will be here" class="webcam refresh" data-default-prescale="3" data-src="http://zoneminder.wbko.net/zm/cgi-bin/nph-zms?scale=100&width=1280px&height=720px&mode=jpeg&maxfps=20&monitor=1&user=status&pass=status">-->
+<!--            <img id="mainWebcamImage" onwaiting="console.log('webcam waiting!');" src="http://zoneminder.wbko.net/zm/cgi-bin/nph-zms?scale=100&width=1280px&height=720px&mode=jpeg&maxfps=20&monitor=1&user=status&pass=status" onclick="hideAllContextMenus();" style="position: absolute; top: 0; left: 0;" alt="Camera image will be here" class="webcam" data-default-prescale="3" data-src="http://zoneminder.wbko.net/zm/cgi-bin/nph-zms?scale=100&width=1280px&height=720px&mode=jpeg&maxfps=20&monitor=1&user=status&pass=status">-->
+<!--            <img id="mainWebcamImage" style="position: absolute; top: 0; left: 0;" alt="Camera image will be here" class="webcam" data-src="http://zoneminder.wbko.net/zm/cgi-bin/nph-zms?scale=100&width=1280px&height=720px&mode=jpeg&maxfps=20&monitor=1&user=status&pass=status">-->
+            <img id="mainWebcamImage" alt="Camera image will be here" class="webcam">
+
             <svg height="100%" width="100%" class="gridOverlay hidden" id="tenthGridOverlay">
                 <line x1="0" y1="0" x2="100%" y2="100%" stroke="orange"></line>
                 <line x1="0" y1="100%" x2="100%" y2="0" stroke="orange"></line>
 
-                <line x1="0" y1="10%" x2="100%" y2="10%" stroke="green"></line>
-                <line x1="0" y1="20%" x2="100%" y2="20%" stroke="green"></line>
-                <line x1="0" y1="30%" x2="100%" y2="30%" stroke="green"></line>
-                <line x1="0" y1="40%" x2="100%" y2="40%" stroke="green"></line>
-                <line x1="0" y1="50%" x2="100%" y2="50%" stroke="green"></line>
-                <line x1="0" y1="60%" x2="100%" y2="60%" stroke="green"></line>
-                <line x1="0" y1="70%" x2="100%" y2="70%" stroke="green"></line>
-                <line x1="0" y1="80%" x2="100%" y2="80%" stroke="green"></line>
-                <line x1="0" y1="90%" x2="100%" y2="90%" stroke="green"></line>
+                <g stroke="green">
+                    <line x1="0" y1="10%" x2="100%" y2="10%"></line>
+                    <line x1="0" y1="20%" x2="100%" y2="20%"></line>
+                    <line x1="0" y1="30%" x2="100%" y2="30%"></line>
+                    <line x1="0" y1="40%" x2="100%" y2="40%"></line>
+                    <line x1="0" y1="50%" x2="100%" y2="50%"></line>
+                    <line x1="0" y1="60%" x2="100%" y2="60%"></line>
+                    <line x1="0" y1="70%" x2="100%" y2="70%"></line>
+                    <line x1="0" y1="80%" x2="100%" y2="80%"></line>
+                    <line x1="0" y1="90%" x2="100%" y2="90%"></line>
 
-                <line x1="10%" y1="0" x2="10%" y2="100%" stroke="green"></line>
-                <line x1="20%" y1="0" x2="20%" y2="100%" stroke="green"></line>
-                <line x1="30%" y1="0" x2="30%" y2="100%" stroke="green"></line>
-                <line x1="40%" y1="0" x2="40%" y2="100%" stroke="green"></line>
-                <line x1="50%" y1="0" x2="50%" y2="100%" stroke="green"></line>
-                <line x1="60%" y1="0" x2="60%" y2="100%" stroke="green"></line>
-                <line x1="70%" y1="0" x2="70%" y2="100%" stroke="green"></line>
-                <line x1="80%" y1="0" x2="80%" y2="100%" stroke="green"></line>
-                <line x1="90%" y1="0" x2="90%" y2="100%" stroke="green"></line>
+                    <line x1="10%" y1="0" x2="10%" y2="100%"></line>
+                    <line x1="20%" y1="0" x2="20%" y2="100%"></line>
+                    <line x1="30%" y1="0" x2="30%" y2="100%"></line>
+                    <line x1="40%" y1="0" x2="40%" y2="100%"></line>
+                    <line x1="50%" y1="0" x2="50%" y2="100%"></line>
+                    <line x1="60%" y1="0" x2="60%" y2="100%"></line>
+                    <line x1="70%" y1="0" x2="70%" y2="100%"></line>
+                    <line x1="80%" y1="0" x2="80%" y2="100%"></line>
+                    <line x1="90%" y1="0" x2="90%" y2="100%"></line>
+                </g>
             </svg>
             <svg height="50" width="50" class="spotMarker hidden" id="highlightMarker">
                 <circle cx="50%" cy="50%" r="25" stroke="blue" stroke-width="2" fill="none" />
                 <circle cx="50%" cy="50%" r="5" fill="blue" fill-opacity=".4" />
             </svg>
 
-<!--            <svg class="spotMarker" id="spotMarker[1]">-->
-<!--                <circle cx="50%" cy="50%" r="50" fill="purple" stroke="purple" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" />-->
-<!--            </svg>-->
-<!--            <div class="spotContextMenu row-cols-1" id="spotContextMenu[1]"></div>-->
-
-            <div id="spotStatusOverlayArea" class="spotStatusOverlayArea row align-items-start"></div>
+            <div id="spotStatusOverlayArea" class="spotStatusOverlayArea"></div>
 
         </div>
 
-        <div id="calibrationMenu" class="fixed-bottom text-start px-2 pb-2">
-            <button id="cancelCalibrationButton" class="btn btn-danger hidden" onclick="endCalibration();">Cancel Calibration</button>
+        <div id="calibrationMenu">
+            <button id="cancelCalibrationButton" class="hidden button-red" onclick="endCalibration();">Cancel Calibration</button>
             <div id="downloadButtonLanding"></div>
         </div>
 
-        <div id="dmxFooter" class="text-light text-center fixed-bottom">
+        <div id="dmxFooter">
             <table style="font-size: 0.6em;" id="dmxTable">
                 <thead id="dmxTableHeader"></thead>
                 <tbody id="dmxTableBody"></tbody>
             </table>
         </div>
     </div>
+    <div class="barelyVisibleFooter"><span id="versionInfo">-?-</span></div>
 
-<script src="dependencies/js/lib/bootstrap.js"></script>
+<!--<script src="dependencies/js/lib/bootstrap.js"></script>-->
 <script src="dependencies/js/follow.js"></script>
 </body>
 </html>

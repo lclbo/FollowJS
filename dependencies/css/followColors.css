@@ -1,0 +1,43 @@
+/* rfColors.css */
+:root {
+    --main-bg-primaryStyle: #212529;
+    --main-bg-secondaryStyle: #000000;
+
+    --main-primaryStyle: #762551;
+    --main-translucent-primaryStyle: rgba(118, 37, 81, 0.67);
+
+    --main-secondaryStyle: #212121;
+    --main-translucent-secondaryStyle: rgba(187, 187, 187, 0.67);
+
+    --main-text-primaryStyle: #fff6fb;
+    --main-text-secondaryStyle: #ffffff;
+
+    --main-text-warning-primaryStyle: #ff0000;
+    --main-text-warning-secondaryStyle: #ffffff;
+
+    --rx-bg-highlight-primaryStyle: #760000;
+    --rx-bg-highlight-secondaryStyle: #760000A0;
+
+    --rx-battery-primaryStyle: #ba92a8;
+    --rx-battery-secondaryStyle: #eeeeee;
+
+    --rx-battery-gt70-primaryStyle: darkgreen;
+    --rx-battery-gt30-primaryStyle: green;
+    --rx-battery-gt10-primaryStyle: gold;
+    --rx-battery-leq10-primaryStyle: red;
+
+    --rx-battery-gt70-secondaryStyle: #bebebe;
+    --rx-battery-gt30-secondaryStyle: #bebebe;
+    --rx-battery-gt10-secondaryStyle: gold;
+    --rx-battery-leq10-secondaryStyle: red;
+
+    --afMeter-primaryStyle: #ed9152;
+    --afPeak-primaryStyle: #f56c07;
+    --rfMeter-primaryStyle: #d16454;
+    --rfMeterMax-primaryStyle: #8b5e5f;
+
+    --afMeter-secondaryStyle: #7c7c7c;
+    --afPeak-secondaryStyle: #494949;
+    --rfMeter-secondaryStyle: #bebebe;
+    --rfMeterMax-secondaryStyle: #7c7c7c;
+}
