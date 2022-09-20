@@ -1,6 +1,6 @@
 {
   "name": "followjs",
-  "version": "1.5.7",
+  "version": "1.6.4",
   "productName": "FollowJS",
   "description": "ArtNet FollowSpot control",
   "main": "index.js",
@@ -23,7 +23,7 @@
       "category": "public.app-category.utilities"
     },
     "win": {
-      "target": "nsis"
+      "target": ["nsis", "portable"]
     },
     "extraResources": "config"
   },

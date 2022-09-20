@@ -210,7 +210,7 @@ function hideGridOverlay() {
     document.querySelector("#tenthGridOverlay").classList.add("hidden");
 }
 
-function prepareDMXTable() {
+async function prepareDMXTable() {
     let titleDone = false;
     spots.forEach(function(spot, spotNo) {
         if(!titleDone) {
@@ -226,6 +226,8 @@ function prepareDMXTable() {
             document.getElementById("dmxTableBody").firstElementChild.insertAdjacentHTML("beforeend", '<td id="dmx['+spotNo+']['+chanNo+']">x</td>');
         }
     });
+
+    return Promise.resolve();
 }
 
 function printDMX() {
@@ -273,7 +275,7 @@ function drawAnimationFrameCallback() {
     window.requestAnimationFrame(drawAnimationFrameCallback);
 }
 
-function addSpotsToDOM() {
+async function addSpotsToDOM() {
     spots.forEach(function(spot, spotNo) {
         document.getElementById("webcamDrawArea").insertAdjacentHTML('beforeend',
             '<svg class="spotMarker" id="spotMarker['+spotNo+']" width="50" height="50">\n' +
@@ -302,6 +304,8 @@ function addSpotsToDOM() {
             '</div>'
             );
     });
+
+    return Promise.resolve();
 }
 
 function blinkSpotMarker(spotNo, cycleDuration=1) {
@@ -641,6 +645,7 @@ function refreshMjpegImageResource(rsc) {
             const readMjpeg = () => {
                 reader.read().then(({done, value}) => {
                     if (done) {
+                        window.requestAnimationFrame(refreshMjpegImageResource);
                         return;
                     }
                     for (let byte = 0; byte < value.length; byte++) {
@@ -672,6 +677,7 @@ function refreshMjpegImageResource(rsc) {
             window.requestAnimationFrame(readMjpeg);
         })
         .catch(() => {
+            window.requestAnimationFrame(refreshMjpegImageResource);
             throw Error("Fetch error!");
         });
 
@@ -823,7 +829,7 @@ function gamepadReadButtons() {
                         gamepadObject.assignedSpot.scrollContextMenu(1);
 
                     if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.contextMenuSelect) {
-                        if(!gamepadObject.assignedSpot.contextMenuState.locked)
+                        if(!gamepadObject.assignedSpot.contextMenuState.locked && gamepadObject.assignedSpot.contextMenuState.visible)
                             executeMacro(gamepadObject.assignedSpot.spotNumber, gamepadObject.assignedSpot.contextMenuState.selectedIndex);
                     }
 
@@ -884,9 +890,18 @@ document.addEventListener('DOMContentLoaded', function () {
     enableCaptureKeyboard();
     enableGamepadConnectionEventListeners();
 
-    addSpotsToDOM();
-    prepareDMXTable();
+    (async function() {
+        await addSpotsToDOM();
+        await prepareDMXTable();
+        window.requestAnimationFrame(drawAnimationFrameCallback);
+    })();
 
-    window.requestAnimationFrame(drawAnimationFrameCallback);
+    // window.setTimeout(()=>{
+    //     addSpotsToDOM();
+    //     prepareDMXTable();
+    // }, 250);
+    // window.setTimeout(()=>{
+    //     window.requestAnimationFrame(drawAnimationFrameCallback);
+    // }, 500);
 
 });

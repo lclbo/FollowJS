@@ -1,7 +1,7 @@
 {
     "xboxOneControllerDefault": {
         "config": {
-            "modifier": 0.000332,
+            "modifier": 0.00025,
             "deadZones": {
                 "movement": 0.15,
                 "other": 0.5
