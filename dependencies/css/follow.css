@@ -44,7 +44,7 @@ body {
     background-color: #1e2328;
 }
 
-#webcamDrawArea {
+#mainDrawArea {
     width: 95vw;
     height: fit-content;
     aspect-ratio: 16/9;

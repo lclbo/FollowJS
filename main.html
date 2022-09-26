@@ -3,24 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<!--    <link rel="stylesheet" href="dependencies/css/lib/bootstrap.css">-->
     <link rel="stylesheet" href="dependencies/css/follow.css">
     <script>
         window.nodeRequire = require;
         delete window.exports;
         delete window.module;
     </script>
-<!--    <script src="dependencies/js/lib/jquery-3.6.0.js"></script>-->
     <title>FollowJS</title>
 </head>
 <body onresize="updateWindowSize()">
     <div id="outerArea">
-        <div id="webcamDrawArea">
+        <div id="mainDrawArea">
             <div id="controllerConnectOverlay" class="cameraImageHugeWarningTextOverlay">Waiting for controller…</div>
-<!--            <img src="placeholder.jpeg" onclick="hideAllContextMenus();" class="webcam" style="position: relative" alt="Placeholder">-->
-<!--            <img src="#" onclick="hideAllContextMenus();" style="position: absolute; top: 0; left: 0;" alt="Camera image will be here" class="webcam refresh" data-default-prescale="3" data-src="http://zoneminder.wbko.net/zm/cgi-bin/nph-zms?scale=100&width=1280px&height=720px&mode=jpeg&maxfps=20&monitor=1&user=status&pass=status">-->
-<!--            <img id="mainWebcamImage" onwaiting="console.log('webcam waiting!');" src="http://zoneminder.wbko.net/zm/cgi-bin/nph-zms?scale=100&width=1280px&height=720px&mode=jpeg&maxfps=20&monitor=1&user=status&pass=status" onclick="hideAllContextMenus();" style="position: absolute; top: 0; left: 0;" alt="Camera image will be here" class="webcam" data-default-prescale="3" data-src="http://zoneminder.wbko.net/zm/cgi-bin/nph-zms?scale=100&width=1280px&height=720px&mode=jpeg&maxfps=20&monitor=1&user=status&pass=status">-->
-<!--            <img id="mainWebcamImage" style="position: absolute; top: 0; left: 0;" alt="Camera image will be here" class="webcam" data-src="http://zoneminder.wbko.net/zm/cgi-bin/nph-zms?scale=100&width=1280px&height=720px&mode=jpeg&maxfps=20&monitor=1&user=status&pass=status">-->
             <img id="mainWebcamImage" alt="Camera image will be here" class="webcam">
 
             <svg height="100%" width="100%" class="gridOverlay hidden" id="tenthGridOverlay">
@@ -72,7 +66,6 @@
     </div>
     <div class="barelyVisibleFooter"><span id="versionInfo">-?-</span></div>
 
-<!--<script src="dependencies/js/lib/bootstrap.js"></script>-->
-<script src="dependencies/js/follow.js"></script>
+    <script src="dependencies/js/follow.js"></script>
 </body>
 </html>

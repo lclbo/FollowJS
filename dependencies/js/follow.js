@@ -42,6 +42,7 @@ let spots = [];
 createAllSpotsFromConfigFiles();
 
 
+
 function createAllSpotsFromConfigFiles() {
     let numberOfSpotsCreated = 0;
     const fs = require("fs");
@@ -277,13 +278,13 @@ function drawAnimationFrameCallback() {
 
 async function addSpotsToDOM() {
     spots.forEach(function(spot, spotNo) {
-        document.getElementById("webcamDrawArea").insertAdjacentHTML('beforeend',
+        document.getElementById("mainDrawArea").insertAdjacentHTML('beforeend',
             '<svg class="spotMarker" id="spotMarker['+spotNo+']" width="50" height="50">\n' +
             '   <circle cx="50%" cy="50%" r="50" fill="'+global.systemConf.spotMarkerColors[((spotNo-1) % (global.systemConf.spotMarkerColors.length))]+'" stroke="'+global.systemConf.spotMarkerColors[((spotNo-1) % (global.systemConf.spotMarkerColors.length))]+'" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" onclick="toggleContextMenu('+spotNo+');" />\n' +
             '</svg>'
         );
 
-        document.getElementById("webcamDrawArea").insertAdjacentHTML('beforeend',
+        document.getElementById("mainDrawArea").insertAdjacentHTML('beforeend',
             '<div class="spotContextMenu" id="spotContextMenu['+spotNo+']"></div>'
         );
 
@@ -373,12 +374,12 @@ function drawSpots() {
 }
 
 function updateWindowSize() {
-    x_img_max = document.getElementById("webcamDrawArea").clientWidth;
-    y_img_max = document.getElementById("webcamDrawArea").clientHeight;
+    x_img_max = document.getElementById("mainDrawArea").clientWidth;
+    y_img_max = document.getElementById("mainDrawArea").clientHeight;
     // element.offset<Height|Width> includes borders, element.client<Height|Width> does not
 
-    r_img_min = 10 * (document.getElementById("webcamDrawArea").clientWidth / 800);
-    r_img_max = 30 * (document.getElementById("webcamDrawArea").clientWidth / 800);
+    r_img_min = 10 * (document.getElementById("mainDrawArea").clientWidth / 800);
+    r_img_max = 30 * (document.getElementById("mainDrawArea").clientWidth / 800);
 }
 
 function enableCaptureKeyboard() {
@@ -531,18 +532,23 @@ function setChannelToValue(spotNo,chan,val,macroNo) {
 }
 
 function initializeImage() {
-    let img = document.getElementById("mainWebcamImage");
-    img.setAttribute("data-src", systemConf.image.imageSource);
+    let mainDrawArea = document.getElementById("mainDrawArea");
+    let mainImage = document.getElementById("mainWebcamImage");
 
     switch(systemConf.image.imageType.toLowerCase()) {
+        case "key":
+            mainImage.style.display = "none";
+            mainDrawArea.style.backgroundColor = systemConf.image.keyColor;
+            break;
         case "mjpeg":
-            window.requestAnimationFrame(() => {refreshMjpegImageResource(img)});
+            mainImage.setAttribute("data-src", systemConf.image.imageSource);
+            window.requestAnimationFrame(() => {refreshMjpegImageResource(mainImage)});
             break;
         case "jpeg":
-            img.setAttribute("data-default-prescale", systemConf.image.imageRateDivider);
-            initializeStaticImageResource(img);
-            window.requestAnimationFrame(() => {refreshStaticImageResource(img)});
-            // window.requestAnimationFrame(() => {refreshStaticImageResource(img)});
+            mainImage.setAttribute("data-src", systemConf.image.imageSource);
+            mainImage.setAttribute("data-default-prescale", systemConf.image.imageRateDivider);
+            initializeStaticImageResource(mainImage);
+            window.requestAnimationFrame(() => {refreshStaticImageResource(mainImage)});
             break;
         default:
             throw Error("unknown systemConf.image.type");
@@ -618,7 +624,6 @@ function refreshStaticImageResource(rsc) {
 function refreshMjpegImageResource(rsc) {
     fetch(rsc.dataset.src)
         .then((resp) => {
-            // console.log(resp);
             if (!resp.ok) {
                 throw Error("fetch response !ok");
             }
@@ -667,13 +672,11 @@ function refreshMjpegImageResource(rsc) {
                             headerString = '';
                         }
                     }
-                    // readMjpeg();
                     window.requestAnimationFrame(readMjpeg);
                 }).catch(error => {
                     console.log(error);
                 })
             }
-            // readMjpeg();
             window.requestAnimationFrame(readMjpeg);
         })
         .catch(() => {
@@ -701,6 +704,7 @@ function gamepadConnectCallback(event) {
         connectedGamepads[event.gamepad.index].rumble("welcome");
     }
 
+    disableCaptureKeyboard(); //if we have a controller, the debug keyboard control is no longer needed
     enableGamepadCyclicReader();
 
     if(connectedGamepads.length > 0)
@@ -895,13 +899,4 @@ document.addEventListener('DOMContentLoaded', function () {
         await prepareDMXTable();
         window.requestAnimationFrame(drawAnimationFrameCallback);
     })();
-
-    // window.setTimeout(()=>{
-    //     addSpotsToDOM();
-    //     prepareDMXTable();
-    // }, 250);
-    // window.setTimeout(()=>{
-    //     window.requestAnimationFrame(drawAnimationFrameCallback);
-    // }, 500);
-
 });

@@ -154,10 +154,6 @@ sender.prototype.setChannel = function (channel, value) {
     if(channel > this.highestChannelToTransmit)
         this.highestChannelToTransmit = channel;
 
-    // if(index > this.values.length) {
-    //     increaseArraySizeToFitUpToChannel(channel, this.values);
-    // }
-
     this.transmit();
 };
 
@@ -234,6 +230,5 @@ function isBroadcast(ipaddress) {
     return Number.parseInt(oct[3]) === 255;
 }
 
-//ToDo: Receiver
 //Export dmxnet
 module.exports = {DmxArtNet};
