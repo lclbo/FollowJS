@@ -15,6 +15,12 @@
     <div id="outerArea">
         <div id="mainDrawArea">
             <div id="controllerConnectOverlay" class="cameraImageHugeWarningTextOverlay">Waiting for controller…</div>
+            <div id="inputOverlay" class="textInputOverlay hidden">
+                <textarea rows="10" cols="48" id="inputOverlayText"></textarea>
+                <br>
+                <button>Cancel</button>
+                <button onclick="importCalibration();">Submit</button>
+            </div>
             <img id="mainWebcamImage" alt="Camera image will be here" class="webcam">
 
             <svg height="100%" width="100%" class="gridOverlay hidden" id="tenthGridOverlay">

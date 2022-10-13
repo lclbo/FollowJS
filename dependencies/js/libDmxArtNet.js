@@ -103,6 +103,7 @@ sender.prototype.transmit = function () {
         //     this.ArtDmxSeq=1;
         // }
 
+
         // disable sequential order functionality
         this.ArtDmxSeq = 0;
 

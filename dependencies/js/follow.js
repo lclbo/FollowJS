@@ -47,27 +47,19 @@ function createAllSpotsFromConfigFiles() {
     let numberOfSpotsCreated = 0;
     const fs = require("fs");
     try {
-        let execPath = process.execPath.toLowerCase();
-        let pathStr = "";
-        if(execPath.includes("electron")) {
-            pathStr = "config/spots";
-        }
-        else {
-            pathStr = "" + process.resourcesPath + "/config/spots";
-        }
-
-       fs.readdir(pathStr, (err,files) => {
+        let pathStr = "" + getConfigPath() + "/spots";
+        fs.readdir(pathStr, (err,files) => {
            if(!err) {
                files.forEach((file)=> {
                    if(file.endsWith(".json")) {
-                       let shortFilename = file.substring(0, file.lastIndexOf(".json"));
+                       let fileNameWithoutExtension = file.substring(0, file.lastIndexOf(".json"));
                        // console.log(shortFilename);
-                       createSpotFromConfigFile(shortFilename, artNetSenderA);
+                       createSpotFromConfigFile(fileNameWithoutExtension, artNetSenderA);
                        numberOfSpotsCreated++;
                    }
                });
            }
-       });
+        });
     }
     catch(e) {
         console.log("load Config Error: "+e);
@@ -80,17 +72,9 @@ function createAllSpotsFromConfigFiles() {
 function createSpotFromConfigFile(filename, artNetSender) {
     const fs = require("fs");
     try {
-        let execPath = process.execPath.toLowerCase();
-        let pathStr = "";
-        if(execPath.includes("electron")) {
-            pathStr = "config/spots/"+filename+".json";
-        }
-        else {
-            pathStr = "" + process.resourcesPath + "/config/spots/" + filename + ".json";
-        }
-
-        let jsonStr = fs.readFileSync(pathStr);
+        let jsonStr = fs.readFileSync("" +getConfigPath() + "/spots/" + filename + ".json");
         let spotConfig = JSON.parse(jsonStr.toString());
+        spotConfig.sourceFileName = filename;
         let nextFreeSpotNo = Object.keys(spots).length + 1;
 
         spots[nextFreeSpotNo] = new FollowJSSpot(nextFreeSpotNo, spotConfig, artNetSender);
@@ -100,19 +84,24 @@ function createSpotFromConfigFile(filename, artNetSender) {
     }
 }
 
+function storeSpotToConfigFile(spotNo) {
+    const fs = require("fs");
+    try {
+        let spot = spots[spotNo];
+        let filename = spot.config.sourceFileName;
+        fs.writeFileSync(""+getConfigPath()+"/spots/"+filename+".json", JSON.stringify(spot.config, null, 2));
+        // console.log("Config stored.");
+    }
+    catch(e) {
+        console.log("store Config Error: "+e);
+        return null;
+    }
+}
+
 function loadConfigFromFile(filename) {
     const fs = require("fs");
     try {
-        let execPath = process.execPath.toLowerCase();
-        let pathStr = "";
-        if(execPath.includes("electron")) {
-            pathStr = "config";
-        }
-        else {
-            pathStr = "" + process.resourcesPath + "/config";
-        }
-
-        let configStr = fs.readFileSync(""+pathStr+"/"+filename+".json");
+        let configStr = fs.readFileSync(""+getConfigPath()+"/"+filename+".json");
 
         return JSON.parse(configStr.toString());
     }
@@ -120,6 +109,39 @@ function loadConfigFromFile(filename) {
         console.log("load Config Error: "+e);
         return null;
     }
+}
+
+function getConfigPath() {
+    let execPath = process.execPath.toLowerCase();
+    let pathStr = "";
+
+    if(execPath.includes("electron")) {
+        pathStr = "config";
+    }
+    else {
+        pathStr = "" + process.resourcesPath + "/config";
+    }
+
+    return pathStr;
+}
+
+function importCalibration(spotNo) {
+    let calibArrayA = [];
+    let calibArrayB = [];
+
+    let calibStr = "" + document.getElementById("inputOverlayText").value;
+    let calibStrLines = calibStr.split(/\r?\n/);
+
+    calibStrLines.forEach((line,lineNo) => {
+        let lineMatches = [...line.matchAll(/([+-]*\d.?\d+e[+-]\d{2})/g)];
+        if(lineMatches.length === 2) {
+            calibArrayA.push(Number.parseFloat(""+lineMatches[0]));
+            calibArrayB.push(Number.parseFloat(""+lineMatches[1]));
+        }
+    });
+    // document.getElementById("textInputResult").innerText = "" + calibArrayA.toString() + calibArrayB.toString();
+    spots[spotNo].config.translation.regression.a = calibArrayA;
+    spots[spotNo].config.translation.regression.b = calibArrayB;
 }
 
 function initCalibration(spotNo) {
@@ -172,15 +194,16 @@ function endCalibration() {
 function exportCalibration() {
     let plainText = "";
     calibrationValues.forEach(function(elem, eIdx) {
-        plainText = plainText + "["+elem[0]+" "+elem[1]+"];";
-        if((eIdx+1) % 8 === 0)
-            plainText = plainText + "\n";
+        if(elem[0] === null || elem[1] === null)
+            plainText = plainText + "-1 -1\n";
+        else
+            plainText = plainText + ""+elem[0]+" "+elem[1]+"\n";
     });
 
     let plainBlob = new Blob([plainText], {type: 'application/octet-stream;charset=utf-8'});
     let plainLink = window.URL.createObjectURL(plainBlob);
     let a = document.createElement("a");
-    a.download = 'calibration-'+globalTimestamp.getFullYear()+'-'+(globalTimestamp.getMonth()+1)+'-'+globalTimestamp.getDate()+'-spot'+calibrationSpotNo+'.csv';
+    a.download = 'calibration-'+globalTimestamp.getFullYear()+'-'+(globalTimestamp.getMonth()+1)+'-'+globalTimestamp.getDate()+'-spot'+calibrationSpotNo+'.txt';
     a.href = plainLink;
     a.innerHTML = "<button class='button-green'>Download Calibration</button>";
     document.getElementById('downloadButtonLanding').appendChild(a);
@@ -441,6 +464,7 @@ function drawContextMenu(spotNo) {
     });
 
     spotContextMenuElement.insertAdjacentHTML("beforeend", '<div id="calib['+spotNo+']" onclick="initCalibration('+spotNo+')">Calibrate</div>');
+    spotContextMenuElement.insertAdjacentHTML("beforeend", '<div id="store['+spotNo+']" onclick="storeSpotToConfigFile('+spotNo+')">Store Config</div>');
     spotContextMenuElement.insertAdjacentHTML("afterbegin", '<div>Spot #'+spotNo+'</div>');
 }
 

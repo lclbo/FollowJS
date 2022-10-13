@@ -14,8 +14,8 @@
   },
   "private": true,
   "devDependencies": {
-    "electron": "^19.0.7",
-    "electron-builder": "^23.1.0"
+    "electron": "^21.1.1",
+    "electron-builder": "^23.6.0"
   },
   "build": {
     "appId": "com.lclausing.followjs",
@@ -23,12 +23,16 @@
       "category": "public.app-category.utilities"
     },
     "win": {
-      "target": ["nsis", "portable"]
+      "target": [
+        "nsis",
+        "portable"
+      ]
     },
     "extraResources": "config"
   },
   "dependencies": {
     "jspack": "^0.0.4",
+    "npm-check-updates": "^16.3.11",
     "requirejs": "^2.3.6"
   }
 }

@@ -22,7 +22,7 @@ async function createWindow () {
     fullscreenable: true
   });
   // winRef.setAlwaysOnTop(true);
-  // winRef.webContents.openDevTools();
+  winRef.webContents.openDevTools();
 
   await winRef.loadFile(path.join(__dirname, 'main.html'), {query: {"app": app.getName(), "ver": app.getVersion()}});
 
