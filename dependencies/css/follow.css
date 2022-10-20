@@ -236,6 +236,22 @@ body {
     padding-bottom: 2rem;
 }
 
+#inputOverlayText {
+    background-color: #ECECECFF;
+}
+
+.backgroundFlashRed {
+    animation: bgFlashRed 1s ease-in;
+}
+@keyframes bgFlashRed {
+    0% {
+        background-color: #8B0000FF;
+    }
+    100% {
+        background-color: #ECECECFF;
+    }
+}
+
 .button-red {
     background-color: orangered;
     border: 1px solid darkred;

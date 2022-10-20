@@ -125,12 +125,38 @@ function getConfigPath() {
     return pathStr;
 }
 
-function importCalibration(spotNo) {
+function startImportCalibration(spotNo) {
+    document.getElementById("inputOverlaySpotNo").innerText = ""+spotNo;
+    // document.getElementById("inputOverlaySubmitButton").onclick = (e) => {importCalibration(spotNo);};
+    document.getElementById("inputOverlayText").dataset.targetSpotNo = spotNo;
+    document.getElementById("inputOverlaySubmitButton").addEventListener("click", importCalibrationFromText);
+    document.getElementById("inputOverlayText").value = "";
+    document.getElementById("inputOverlay").classList.remove("hidden");
+}
+
+function endImportCalibration() {
+    document.getElementById("inputOverlay").classList.add("hidden");
+    document.getElementById("inputOverlaySpotNo").innerText = "?";
+    document.getElementById("inputOverlayText").dataset.targetSpotNo = undefined;
+    // document.getElementById("inputOverlaySubmitButton").onclick = null;
+    document.getElementById("inputOverlaySubmitButton").removeEventListener("click", importCalibrationFromText);
+}
+
+function importCalibrationFromText() {
+    let targetSpotNoStr = "" + document.getElementById("inputOverlayText").dataset.targetSpotNo;
+    let calibStr = "" + document.getElementById("inputOverlayText").value;
+
+    let targetSpotNo = Number.parseInt(targetSpotNoStr);
+    if(targetSpotNo) {
+        importCalibration(targetSpotNo, calibStr);
+    }
+}
+
+function importCalibration(spotNo, calibString) {
     let calibArrayA = [];
     let calibArrayB = [];
 
-    let calibStr = "" + document.getElementById("inputOverlayText").value;
-    let calibStrLines = calibStr.split(/\r?\n/);
+    let calibStrLines = calibString.split(/\r?\n/);
 
     calibStrLines.forEach((line,lineNo) => {
         let lineMatches = [...line.matchAll(/([+-]*\d.?\d+e[+-]\d{2})/g)];
@@ -139,9 +165,17 @@ function importCalibration(spotNo) {
             calibArrayB.push(Number.parseFloat(""+lineMatches[1]));
         }
     });
-    // document.getElementById("textInputResult").innerText = "" + calibArrayA.toString() + calibArrayB.toString();
-    spots[spotNo].config.translation.regression.a = calibArrayA;
-    spots[spotNo].config.translation.regression.b = calibArrayB;
+    if(calibArrayA.length === 6 && calibArrayB.length === 6) {
+        spots[spotNo].config.translation.regression.a = calibArrayA;
+        spots[spotNo].config.translation.regression.b = calibArrayB;
+        storeSpotToConfigFile(spotNo);
+        endImportCalibration();
+    }
+    else {
+        console.log("Import error.");
+        document.getElementById("inputOverlayText").classList.add("backgroundFlashRed");
+        document.getElementById("inputOverlayText").onanimationend = ()=>{document.getElementById("inputOverlayText").classList.remove("backgroundFlashRed");};
+    }
 }
 
 function initCalibration(spotNo) {
@@ -463,8 +497,9 @@ function drawContextMenu(spotNo) {
             '</div>');
     });
 
-    spotContextMenuElement.insertAdjacentHTML("beforeend", '<div id="calib['+spotNo+']" onclick="initCalibration('+spotNo+')">Calibrate</div>');
-    spotContextMenuElement.insertAdjacentHTML("beforeend", '<div id="store['+spotNo+']" onclick="storeSpotToConfigFile('+spotNo+')">Store Config</div>');
+    spotContextMenuElement.insertAdjacentHTML("beforeend", '<div id="calib['+spotNo+']" onclick="initCalibration('+spotNo+')"><small>Calibrate</small></div>');
+    spotContextMenuElement.insertAdjacentHTML("beforeend", '<div id="importCalib['+spotNo+']" onclick="startImportCalibration('+spotNo+')"><small>Import Calibration</small></div>');
+    spotContextMenuElement.insertAdjacentHTML("beforeend", '<div id="store['+spotNo+']" onclick="storeSpotToConfigFile('+spotNo+')"><small>Store Config</small></div>');
     spotContextMenuElement.insertAdjacentHTML("afterbegin", '<div>Spot #'+spotNo+'</div>');
 }
 
