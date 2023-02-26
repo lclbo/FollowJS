@@ -1,16 +1,37 @@
+
 /*
-    Modified version of node.js module "dmxnet" by margau: https://github.com/margau/dmxnet
-    MIT License: https://github.com/margau/dmxnet/blob/master/LICENSE
+    This is a modified version of "dmxnet" by "margau", https://github.com/margau/dmxnet
+    available under MIT License: https://github.com/margau/dmxnet/blob/master/LICENSE
+
+    MIT License
+
+    Copyright (c) 2017
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
  */
 
 const dgram = require('dgram');
 const jspack = require('jspack').jspack;
 
-// ArtDMX Header for jspack
-const ArtDmxHeaderFormat = '!7sBHHBBBBH';
-// ArtDMX Payload for jspack
+// ArtDMX Header & ArtDMX Payload formats for jspack
+const ArtDmxHeaderFormat  = '!7sBHHBBBBH';
 const ArtDmxPayloadFormat = '512B';
-
 
 //dmxnet constructor
 function DmxArtNet(options) {
@@ -40,7 +61,6 @@ sender=function (options={},parent){
     this.ip = options.ip || "255.255.255.255";
     this.port = options.port || 6454;
     this.verbose = this.parent.verbose;
-    this.highestChannelToTransmit = 2;
 
     //Validate Input
     if(this.net > 127) {
@@ -73,12 +93,11 @@ sender=function (options={},parent){
 
     //Create Socket
     this.socket=dgram.createSocket('udp4');
-    let _this = this;
     //Check IP and Broadcast
     if(isBroadcast(this.ip)) {
-        this.socket.bind(function() {
-            _this.socket.setBroadcast(true);
-            _this.socket_ready=true;
+        this.socket.bind(() => {
+            this.socket.setBroadcast(true);
+            this.socket_ready=true;
         });
 
     } else {
@@ -88,8 +107,8 @@ sender=function (options={},parent){
     this.transmit();
 
     //Send Frame all 1000ms even there is no channel change
-    this.interval=setInterval(function() {
-        _this.transmit();
+    this.interval=setInterval(() => {
+        this.transmit();
     },1000);
 }
 
@@ -97,15 +116,14 @@ sender=function (options={},parent){
 sender.prototype.transmit = function () {
     // console.log("transmit ArtNet");
     //Only transmit if socket is ready
-    let _this = this;
     if (this.socket_ready) {
-        // if(this.ArtDmxSeq>255) {
-        //     this.ArtDmxSeq=1;
-        // }
 
+        if(this.ArtDmxSeq>255) {
+            this.ArtDmxSeq=1;
+        }
 
         // disable sequential order functionality
-        this.ArtDmxSeq = 0;
+        // this.ArtDmxSeq = 0;
 
         // disable auto-retransmit since transmit was called
         // clearInterval(this.interval);
@@ -114,9 +132,8 @@ sender.prototype.transmit = function () {
         // let udppacket = new Buffer(jspack.Pack(ArtDmxHeaderFormat + ArtDmxPayloadFormat, ["Art-Net", 0, 0x0050, 14, this.ArtDmxSeq, 0, this.subuni, this.net, this.values.length].concat(this.values)));
         let udppacket = new Buffer.from(jspack.Pack(ArtDmxHeaderFormat + ArtDmxPayloadFormat, ["Art-Net", 0, 0x0050, 14, this.ArtDmxSeq, 0, this.subuni, this.net, this.values.length].concat(this.values)));
 
-
         //Increase Sequence Counter
-        // this.ArtDmxSeq++;
+        this.ArtDmxSeq++;
 
         //Send UDP
         this.socket.send(udppacket, 0, udppacket.length, this.port, this.ip, function (err, bytes) {
@@ -125,43 +142,30 @@ sender.prototype.transmit = function () {
         });
 
         //Send Frame all 1000ms even there is no channel change
-        // this.interval=setInterval(function() {
+        // this.interval=setInterval(() => {
         //     console.log("auto-retransmit");
-        //     _this.transmit();
+        //     this.transmit();
         // },1000);
     }
 };
 
-function increaseArraySizeToFitUpToChannel(channel, valArray) {
-    for(let i=0;i<channel;i++) {
-        if(!(i in valArray))
-            valArray[i] = 0;
-    }
-}
-
 //SetChannel function
 sender.prototype.setChannel = function (channel, value) {
     let index = channel - 1;
-
     if((channel > 512) || (channel < 1)) {
         throw "setChannel: Channel must be between 1 and 512";
     }
     if((value > 255) || (value < 0)) {
         throw "setChannel: Value must be between 0 and 255";
     }
-
     this.values[index] = value;
 
-    if(channel > this.highestChannelToTransmit)
-        this.highestChannelToTransmit = channel;
-
-    this.transmit();
+    // this.transmit();
 };
 
 //PrepChannel function
 sender.prototype.prepChannel = function (channel, value) {
     let index = channel - 1;
-
     if((channel > 512) || (channel < 1)) {
         throw "prepChannel: Channel must be between 1 and 512";
     }
@@ -169,47 +173,29 @@ sender.prototype.prepChannel = function (channel, value) {
         throw "prepChannel: Value must be between 0 and 255";
     }
     this.values[index] = value;
-
-    if(channel > this.highestChannelToTransmit)
-        this.highestChannelToTransmit = channel;
 };
 
-//SetChannels
-sender.prototype.setChannels = async function (start, channels) {
-    new Promise(resolve => {
-        let index = start - 1;
-        let length = channels.length;
-        if((start > 512) || (start < 1)) {
-            throw "setChannels: Channel must be between 1 and 512 but actually is " + start + ".";
-        }
-        if((start + length - 1) > 512) {
-            throw "Channel Array exceeds 512";
-        }
-        channels.forEach((cVal,cIdx) => {
-            this.values[index+cIdx-1] = cVal;
-        });
-        this.transmit();
-    });
-};
-
-//Fill Channels
-sender.prototype.fillChannels = function (start, stop, value) {
-    let indexStart = start - 1;
-    let indexStop = stop - 1;
-
+/**
+ * Set a series of channels from a given starting offset.
+ * The number of channels to set is implied by the size
+ * of the given values array.
+ * @param start first channel (1...512) to set
+ * @param channels array of channel values
+ */
+sender.prototype.setChannels = function (start, channels) {
+    let index = start - 1;
+    let length = channels.length;
     if((start > 512) || (start < 1)) {
-        throw "fillChannels: Start Channel must be between 1 and 512";
+        throw "setChannels: Channel must be between 1 and 512";
     }
-    if((stop > 512) || (stop < 1)) {
-        throw "fillChannels: Stop Channel must be between 1 and 512";
+    if((start + length - 1) > 512) {
+        throw "setChannels: Channel Array exceeds 512";
     }
-    if((value > 255) || (value < 0)) {
-        throw "fillChannels: Value must be between 0 and 255";
-    }
-    for(let i=indexStart; i<=indexStop; i++) {
-        this.values[i] = value;
-    }
-    this.transmit();
+    channels.forEach((cVal,cIdx) => {
+        this.values[index+cIdx-1] = cVal;
+    });
+
+    // this.transmit();
 };
 
 //Stop sender

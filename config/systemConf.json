@@ -2,8 +2,29 @@
   "spotMarkerColors": ["green", "blue", "purple", "yellow"],
   "image": {
     "imageSource": "http://zoneminder.wbko.net/zm/cgi-bin/nph-zms?scale=100&width=1280px&height=720px&mode=jpeg&maxfps=20&monitor=1&user=status&pass=status",
-    "imageType": "key",
+    "imageType": "jpeg",
     "keyColor": "rgb(255,0,213)",
     "imageRateDivider": 3
+  },
+  "keyboardControl": {
+    "config": {
+      "alwaysEnabled": false,
+      "useAsFallback": true,
+      "modifier": 0.001
+    },
+    "mapping": {
+      "yInc": "w",
+      "yDec": "s",
+      "xInc": "d",
+      "xDec": "a",
+      "snap": "x",
+      "cto": "c",
+      "dimUp": "ArrowUp",
+      "dimDown": "ArrowDown",
+      "bigger": "e",
+      "smaller": "q",
+      "nextColor": "ArrowRight",
+      "prevColor": "ArrowLeft"
+    }
   }
 }

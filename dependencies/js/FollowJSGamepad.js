@@ -1,6 +1,6 @@
+"use strict";
 /**
  * A FollowJSGamepad is a single gamepad object originating from the navigator.getGamepads() array.
- *
  * It contains the current reference as well as the button state from the previous read for edge detection
  */
 class FollowJSGamepad {

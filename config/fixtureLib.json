@@ -39,6 +39,10 @@
                 "color": {
                     "open": 0,
                     "cto": 37
+                },
+                "colorWheel": {
+                    "openIndex": 0,
+                    "ctoIndex": 2
                 }
             },
             "mapping": {
@@ -84,14 +88,15 @@
                     "hold": 10
                 }
             ],
-            "colorWheel": [
-                0,
-                19,
-                37,
-                55,
-                74,
-                92,
-                110
+            "colorWheel": [0, 19, 37, 55, 74, 92, 110],
+            "colorWheelArray": [
+                {"value": 0,  "visual": "#ffffff"},
+                {"value": 19, "visual": "#ff0000"},
+                {"value": 37, "visual": "#fcdf56"},
+                {"value": 55, "visual": "#04bb3d"},
+                {"value": 74, "visual": "#0ab7d7"},
+                {"value": 92, "visual": "#ffaa00"},
+                {"value": 110, "visual": "#2f00cd"}
             ],
             "channels": {
                 "1": {

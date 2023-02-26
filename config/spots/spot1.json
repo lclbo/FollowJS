@@ -72,22 +72,6 @@
     "address": 29
   },
   "control": {
-    "keyboard": {
-      "config": {
-        "modifier": 0.001
-      },
-      "mapping": {
-        "yInc": "w",
-        "yDec": "s",
-        "xInc": "d",
-        "xDec": "a",
-        "snap": "x",
-        "dimUp": "c",
-        "dimDown": "y",
-        "bigger": "e",
-        "smaller": "q"
-      }
-    },
     "gamepad": {
       "typeFromLib": "xboxOneControllerDefault",
       "mappingFromLib": "legacy"

@@ -210,14 +210,14 @@ body {
 }
 
 .spotStatusOverlayColor {
-    background: linear-gradient(to right, #ffffff 0%,
-    #FF0000 14.9%, #ff0000 21.16%,
-    #fcdf56 29.0%, #fcdf56 35.28%,
-    #04bb3d 43.14%, #04bb3d 49.4%,
-    #0ab7d7 58.04%, #0ab7d7 64.3%,
-    #ffaa00 72.16%, #ffaa00 78.42%,
-    #2f00cd 86.28%, #2f00cd 92.54%,
-    #ffffff 100%);
+/*    background: linear-gradient(to right, #ffffff 0%,*/
+/*    #FF0000 14.9%, #ff0000 21.16%,*/
+/*    #fcdf56 29.0%, #fcdf56 35.28%,*/
+/*    #04bb3d 43.14%, #04bb3d 49.4%,*/
+/*    #0ab7d7 58.04%, #0ab7d7 64.3%,*/
+/*    #ffaa00 72.16%, #ffaa00 78.42%,*/
+/*    #2f00cd 86.28%, #2f00cd 92.54%,*/
+/*    #ffffff 100%);*/
 }
 .spotStatusOverlayFocus {
     background: linear-gradient(to right, #1066ffFF 0%, #00448dFF 100%);
