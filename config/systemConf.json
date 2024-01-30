@@ -1,7 +1,9 @@
 {
   "spotMarkerColors": ["green", "blue", "purple", "yellow"],
   "image": {
-    "imageSource": "http://zoneminder.wbko.net/zm/cgi-bin/nph-zms?scale=100&width=1280px&height=720px&mode=jpeg&maxfps=20&monitor=1&user=status&pass=status",
+    "comment_imageSource": "For ZoneMinder: use /cgi-bin/zms instead of /cgi-bin/nph-zms, since nph (non-parsed header) does not respect any modified headers such as Access-Control-Allow-Origin",
+    "imageSource": "http://zoneminder.wbko.net/zm/cgi-bin/zms?scale=100&width=1280px&height=720px&mode=jpeg&maxfps=20&monitor=1&user=status&pass=status",
+    "comment_imageType": "valid options: jpeg (reloading frame by frame) | mjpeg (reading continuous video stream) | key (for external video keying, defined by keyColor)",
     "imageType": "jpeg",
     "keyColor": "rgb(255,0,213)",
     "imageRateDivider": 3
@@ -13,6 +15,8 @@
       "modifier": 0.001
     },
     "mapping": {
+      "comment": "required entries: home,yInc,yDec,xInc,xDec,snap,cto,dimUp,dimDown,bigger,smaller,nextColor,prevColor,storeCalibrationPoint,skipCalibrationPoint",
+      "home": "h",
       "yInc": "w",
       "yDec": "s",
       "xInc": "d",
@@ -24,7 +28,9 @@
       "bigger": "e",
       "smaller": "q",
       "nextColor": "ArrowRight",
-      "prevColor": "ArrowLeft"
+      "prevColor": "ArrowLeft",
+      "storeCalibrationPoint": "Enter",
+      "skipCalibrationPoint": "Escape"
     }
   }
 }

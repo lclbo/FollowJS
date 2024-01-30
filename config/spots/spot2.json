@@ -6,7 +6,7 @@
     "r": 0,
     "frost": 0,
     "focus": 0,
-    "dim": 1,
+    "dim": 0.8499999999999999,
     "shutterOpen": false,
     "colorWheelIndex": 0,
     "CTOin": false
@@ -92,5 +92,6 @@
       "typeFromLib": "xboxOneControllerDefault",
       "mappingFromLib": "legacy"
     }
-  }
+  },
+  "sourceFileName": "spot2"
 }

@@ -95,6 +95,10 @@ class FollowJSSpot {
         this.convertAndSend(true);
     }
 
+    setCurrentStateAsHomeConfig() {
+        this.config.home = {...this.state};
+    }
+
     moveSpot(dX, dY) {
         if (dX !== 0)
             this.state.x = Math.min(Math.max(this.state.x + dX, this.config.boundaries.x.min), this.config.boundaries.x.max);
@@ -130,14 +134,14 @@ class FollowJSSpot {
         this.state.CTOin = (this.state.CTOin === false);
 
         if(this.state.CTOin === false)
-            this.setColorWeheel(this.fixture.dmx.presets.colorWheel.openIndex);
+            this.setColorWheel(this.fixture.dmx.presets.colorWheel.openIndex);
         else
-            this.setColorWeheel(this.fixture.dmx.presets.colorWheel.ctoIndex);
+            this.setColorWheel(this.fixture.dmx.presets.colorWheel.ctoIndex);
 
         this.convertAndSend(true);
     }
 
-    setColorWeheel(index) {
+    setColorWheel(index) {
         let cwLen = this.fixture.dmx.colorWheelArray.length;
         this.state.colorWheelIndex = (index % cwLen);
 

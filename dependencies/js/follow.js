@@ -1,7 +1,15 @@
 "use strict";
 
+/*
+TODO:
+- move calibration handling and control into spots
+- make contextMenu a property of each spot, mainView gets a paintMenus() method to paint all _opened_ menus
+- create FollowJSKeyboard
+- move all readAxes and readButtons to Gamepad object
+ */
+
 const dmxLib = require('./dependencies/js/libDmxArtNet');
-const FollowJSGamepad = require('./dependencies/js/FollowJSGamepad.js');
+const FollowJSGamepad = require('./dependencies/js/FollowJSGamepad');
 const FollowJSSpot = require('./dependencies/js/FollowJSSpot');
 const FollowJSMainView = require('./dependencies/js/FollowJSMainView');
 
@@ -93,6 +101,7 @@ function storeSpotToConfigFile(spotNo) {
     const fs = require("fs");
     try {
         let spot = spots[spotNo];
+        spot.setCurrentStateAsHomeConfig();
         let filename = spot.config.sourceFileName;
         fs.writeFileSync(""+getConfigPath()+"/spots/"+filename+".json", JSON.stringify(spot.config, null, 2));
         // console.log("Config stored.");
@@ -173,7 +182,8 @@ function importCalibration(spotNo, calibString) {
     if(calibArrayA.length === 6 && calibArrayB.length === 6) {
         spots[spotNo].config.translation.regression.a = calibArrayA;
         spots[spotNo].config.translation.regression.b = calibArrayB;
-        storeSpotToConfigFile(spotNo);
+        // storeSpotToConfigFile(spotNo);
+        mainView.drawSpots(); //update spot position
         endImportCalibration();
     }
     else {
@@ -253,26 +263,6 @@ function showCalibrationPoint() {
     mainView.highlightImageCoord(true,(((calibrationStep-1) % 9) + 1) * 0.1,(Math.floor((calibrationStep-1) / 9) + 1) * 0.1);
 }
 
-// function highlightImageCoord(enable,x=0.5,y=0.5) {
-//     if(enable !== true) {
-//         document.querySelector("#highlightMarker").classList.add("hidden");
-//     }
-//     else {
-//         let pos_x = (x * x_img_max) % x_img_max;
-//         let pos_y = ((1-y) * y_img_max) % y_img_max;
-//         document.querySelector("#highlightMarker").style.top = (pos_y).toString();
-//         document.querySelector("#highlightMarker").style.left = (pos_x).toString();
-//         document.querySelector("#highlightMarker").classList.remove("hidden");
-//     }
-// }
-
-// function showGridOverlay() {
-//     document.querySelector("#tenthGridOverlay").classList.remove("hidden");
-// }
-// function hideGridOverlay() {
-//     document.querySelector("#tenthGridOverlay").classList.add("hidden");
-// }
-
 function prepareDMXTable() {
     let titleDone = false;
     spots.forEach(function(spot, spotNo) {
@@ -337,37 +327,6 @@ function drawAnimationFrameCallback() {
     window.requestAnimationFrame(drawAnimationFrameCallback);
 }
 
-// function addSpotsToDOM() {
-//     spots.forEach(function(spot, spotNo) {
-//         document.getElementById("mainDrawArea").insertAdjacentHTML('beforeend',
-//             '<svg class="spotMarker" id="spotMarker['+spotNo+']" width="50" height="50">\n' +
-//             '   <circle cx="50%" cy="50%" r="50" fill="'+global.systemConf.spotMarkerColors[((spotNo-1) % (global.systemConf.spotMarkerColors.length))]+'" stroke="'+global.systemConf.spotMarkerColors[((spotNo-1) % (global.systemConf.spotMarkerColors.length))]+'" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" onclick="toggleContextMenu('+spotNo+');" />\n' +
-//             '</svg>'
-//         );
-//
-//         document.getElementById("mainDrawArea").insertAdjacentHTML('beforeend',
-//             '<div class="spotContextMenu" id="spotContextMenu['+spotNo+']"></div>'
-//         );
-//
-//         document.getElementById("spotStatusOverlayArea").insertAdjacentHTML('beforeend',
-//             '<div id="spotStatusOverlay['+spotNo+']" class="spotStatusOverlayGroup" style="border-color: '+global.systemConf.spotMarkerColors[((spotNo-1) % (global.systemConf.spotMarkerColors.length))]+';">\n' +
-//             '   <div class="spotStatusGauge" id="gauge['+spotNo+'][dim]">\n' +
-//             '       <div class="spotStatusOverlayDim">Dimmer</div>\n' +
-//             '   </div>\n' +
-//             '   <div class="spotStatusGauge" id="gauge['+spotNo+'][color]\">\n' +
-//             '       <div class="spotStatusOverlayColor">Color</div>\n' +
-//             '   </div>\n' +
-//             '   <div class="spotStatusGauge" id="gauge['+spotNo+'][focus]\">\n' +
-//             '       <div class="spotStatusOverlayFocus">Focus</div>\n' +
-//             '   </div>\n' +
-//             '   <div class="spotStatusGauge" id="gauge['+spotNo+'][frost]\">\n' +
-//             '       <div class="spotStatusOverlayFrost">Frost</div>\n' +
-//             '   </div>\n' +
-//             '</div>'
-//         );
-//     });
-// }
-
 function blinkSpotMarker(spotNo, cycleDuration=1) {
     let spotMarkerElement = document.getElementById("spotMarker["+spotNo+"]");
     spotMarkerElement.firstElementChild.insertAdjacentHTML("afterbegin", '<animate attributeName="stroke-opacity" values="1;0.2;1" dur="'+(Math.max(0.1,cycleDuration))+'s" repeatCount="indefinite" />')
@@ -400,47 +359,6 @@ function hideAllSpotMarkerExceptFor(dontHideSpotNo) {
     });
 }
 
-// function drawSpots() {
-//     spots.forEach(function(spot, spotNo) {
-//         let x = spot.state.x;
-//         let y = spot.state.y;
-//         let x2 = Math.pow(spot.state.x,2);
-//         let y2 = Math.pow(spot.state.y,2);
-//
-//         let pos_x = spot.config.translation.regression.a[0] + (spot.config.translation.regression.a[1] * x) + (spot.config.translation.regression.a[2] * y) + (spot.config.translation.regression.a[3] * x * y) + (spot.config.translation.regression.a[4] * x2) + (spot.config.translation.regression.a[5] * y2);
-//         let pos_y = spot.config.translation.regression.b[0] + (spot.config.translation.regression.b[1] * x) + (spot.config.translation.regression.b[2] * y) + (spot.config.translation.regression.b[3] * x * y) + (spot.config.translation.regression.b[4] * x2) + (spot.config.translation.regression.b[5] * y2);
-//
-//         let pos_r = spot.state.r;
-//         let radius = ((pos_r*(r_img_max-r_img_min)+r_img_min).toString());
-//
-//         let opacity = (spot.state.shutterOpen === true) ? "0.4" : "0";
-//
-//
-//         let spotMarkerElement = document.getElementById("spotMarker["+spotNo+"]");
-//         spotMarkerElement.style.top = ((1-pos_y) * y_img_max).toString()+"px";
-//         spotMarkerElement.style.left = (pos_x * x_img_max).toString()+"px";
-//         // spotMarkerElement.style.transform = "translate("+(pos_x*100)+"%,"+((1-pos_y)*100)+"%)";
-//         // spotMarkerElement.style.transform = "translate("+((pos_x * x_img_max)-25).toString()+"px"+","+(((1-pos_y) * y_img_max)-25).toString()+"px"+")"; // scale("+(pos_r).toString()+")";
-//
-//         if(radius !== spotMarkerElement.firstElementChild.getAttribute("r"))
-//             spotMarkerElement.firstElementChild.setAttribute("r", radius);
-//         if(opacity !== spotMarkerElement.firstElementChild.getAttribute("fill-opacity"))
-//             spotMarkerElement.firstElementChild.setAttribute("fill-opacity", opacity);
-//
-//         if(spot.contextMenuState.visible === true)
-//             updateContextMenu(spotNo);
-//     });
-// }
-
-// function updateWindowSize() {
-//     x_img_max = document.getElementById("mainDrawArea").clientWidth;
-//     y_img_max = document.getElementById("mainDrawArea").clientHeight;
-//     // element.offset<Height|Width> includes borders, element.client<Height|Width> does not
-//
-//     r_img_min = 10 * (document.getElementById("mainDrawArea").clientWidth / 800);
-//     r_img_max = 30 * (document.getElementById("mainDrawArea").clientWidth / 800);
-// }
-
 function enableCaptureKeyboard() {
     window.removeEventListener('keydown', keyboardInputCallback);
     window.addEventListener('keydown', keyboardInputCallback);
@@ -456,6 +374,9 @@ function keyboardInputCallback(e) {
     }
     else if(keyboardControlSpotNo in spots) {
         switch(e.key) {
+            case systemConf.keyboardControl.mapping.home:
+                spots[keyboardControlSpotNo].homeSpot();
+                break;
             case systemConf.keyboardControl.mapping.yInc:
                 spots[keyboardControlSpotNo].moveSpot(0,spots[keyboardControlSpotNo].config.increment.y * systemConf.keyboardControl.config.modifier);
                 break;
@@ -492,85 +413,17 @@ function keyboardInputCallback(e) {
             case systemConf.keyboardControl.mapping.snap:
                 spots[keyboardControlSpotNo].snapSpot();
                 break;
+            case systemConf.keyboardControl.mapping.storeCalibrationPoint:
+                if(calibrationActive)
+                    storeCalibrationPoint();
+                break;
+            case systemConf.keyboardControl.mapping.skipCalibrationPoint:
+                if(calibrationActive)
+                    skipCalibrationPoint();
+                break;
         }
     }
 }
-
-// function drawContextMenu(spotNo) {
-//     let spot = spots[spotNo];
-//     let spotContextMenuElement = document.getElementById("spotContextMenu["+spotNo+"]");
-//
-//     spot.fixture.dmx.macros.forEach(function(macro,key) {
-//         let selectClass = "";
-//         if(key === spot.contextMenuState.selectedIndex)
-//             selectClass = "spotContextMenuHighlight";
-//
-//         document.getElementById("spotContextMenu["+spotNo+"]").insertAdjacentHTML("beforeend", '' +
-//             '<div class="'+selectClass+'" id="macroButton['+spotNo+']['+key+']" onclick="executeMacro('+spotNo+','+key+')">' +
-//             // '<span class="spinner-grow spinner-grow-sm hiddenVis" role="status"></span>&nbsp;' +
-//             macro.short+'' +
-//             '</div>');
-//     });
-//
-//     spotContextMenuElement.insertAdjacentHTML("beforeend", '<div id="calib['+spotNo+']" onclick="initCalibration('+spotNo+')"><small>Calibrate</small></div>');
-//     spotContextMenuElement.insertAdjacentHTML("beforeend", '<div id="importCalib['+spotNo+']" onclick="startImportCalibration('+spotNo+')"><small>Import Calibration</small></div>');
-//     spotContextMenuElement.insertAdjacentHTML("beforeend", '<div id="store['+spotNo+']" onclick="storeSpotToConfigFile('+spotNo+')"><small>Store Config</small></div>');
-//     spotContextMenuElement.insertAdjacentHTML("afterbegin", '<div>Spot #'+spotNo+'</div>');
-// }
-
-// function updateContextMenu(spotNo) {
-//     let spot = spots[spotNo];
-//     let spotContextMenuElement = document.getElementById("spotContextMenu["+spotNo+"]");
-//
-//     let x = spot.state.x;
-//     let y = spot.state.y;
-//     let x2 = Math.pow(x,2);
-//     let y2 = Math.pow(y,2);
-//
-//     let pos_x = spot.config.translation.regression.a[0] + (spot.config.translation.regression.a[1] * x) + (spot.config.translation.regression.a[2] * y) + (spot.config.translation.regression.a[3] * x * y) + (spot.config.translation.regression.a[4] * x2) + (spot.config.translation.regression.a[5] * y2);
-//     let pos_y = spot.config.translation.regression.b[0] + (spot.config.translation.regression.b[1] * x) + (spot.config.translation.regression.b[2] * y) + (spot.config.translation.regression.b[3] * x * y) + (spot.config.translation.regression.b[4] * x2) + (spot.config.translation.regression.b[5] * y2);
-//
-//     let translate_y = ((1-pos_y) > 0.65) ? "-100%" : "0";
-//     let translate_x = (pos_x > 0.75) ? "-100%" : "0";
-//     spotContextMenuElement.style.transform = "translate("+translate_x+","+translate_y+")";
-//
-//     spotContextMenuElement.style.top = ((1-pos_y) * y_img_max).toString()+"px";
-//     spotContextMenuElement.style.left = (pos_x * x_img_max).toString()+"px";
-//
-//     spotContextMenuElement.childNodes.forEach(function (childElement) {
-//         childElement.classList.remove("spotContextMenuHighlight");
-//     });
-//     document.getElementById('macroButton['+spotNo+']['+spot.contextMenuState.selectedIndex+']').classList.add("spotContextMenuHighlight");
-// }
-
-// function toggleContextMenu(spotNo) {
-//     let spotContextMenuElement = document.getElementById("spotContextMenu["+spotNo+"]");
-//
-//     if(spots[spotNo].contextMenuState.visible !== false) {
-//         spots[spotNo].contextMenuState.visible = false;
-//         spotContextMenuElement.innerHTML = "";
-//     }
-//     else {
-//         if(!spots[spotNo].contextMenuState.locked) {
-//             spots[spotNo].contextMenuState.visible = true;
-//             spots[spotNo].contextMenuState.selectedIndex = 0;
-//             mainView.drawContextMenu(spots, spotNo);
-//             mainView.updateContextMenu(spots, spotNo);
-//         }
-//     }
-// }
-
-// function hideAllContextMenus() {
-//     spots.forEach(function(spot,spotNo) {
-//         hideContextMenu(spotNo);
-//     });
-// }
-
-// function hideContextMenu(spotNo) {
-//     let spotContextMenuElement = document.getElementById("spotContextMenu["+spotNo+"]");
-//     spots[spotNo].contextMenuState.visible = false;
-//     spotContextMenuElement.innerHTML = "";
-// }
 
 function lockContextMenu(spotNo) {
     spots[spotNo].contextMenuState.locked = true;
@@ -602,161 +455,6 @@ function setChannelToValue(spotNo,chan,val,macroNo) {
     document.getElementById("macroButton["+spotNo+"]["+macroNo+"]").firstElementChild.classList.add("hiddenVis");
     spots[spotNo].sendDMX(true);
 }
-
-// function initializeImage() {
-//     let mainDrawArea = document.getElementById("mainDrawArea");
-//     let mainImage = document.getElementById("mainWebcamImage");
-//
-//     switch(systemConf.image.imageType.toLowerCase()) {
-//         case "key":
-//             mainImage.style.display = "none";
-//             mainDrawArea.style.backgroundColor = systemConf.image.keyColor;
-//             break;
-//         case "mjpeg":
-//             mainImage.setAttribute("data-src", systemConf.image.imageSource);
-//             window.requestAnimationFrame(() => {refreshMjpegImageResource(mainImage)});
-//             break;
-//         case "jpeg":
-//             mainImage.setAttribute("data-src", systemConf.image.imageSource);
-//             mainImage.setAttribute("data-default-prescale", systemConf.image.imageRateDivider);
-//             initializeStaticImageResource(mainImage);
-//             window.requestAnimationFrame(() => {refreshStaticImageResource(mainImage)});
-//             break;
-//         default:
-//             throw Error("unknown systemConf.image.type");
-//     }
-// }
-
-
-// /**
-//  * Initializes the data-fields needed for refresh handling
-//  * @param rsc element handle, e.g. from getElementByXYZ()
-//  */
-// function initializeStaticImageResource(rsc) {
-//     if(!('src' in rsc.dataset) || !('defaultPrescale' in rsc.dataset)) {
-//         console.log("cound not initialize, missing src or default-prescale!");
-//     }
-//     else {
-//         rsc.setAttribute('data-is-loading', "empty");
-//         rsc.setAttribute('data-refresh-retries', 0);
-//         rsc.setAttribute('data-pc', (rsc.dataset.defaultPrescale - 1));
-//         rsc.setAttribute('data-prescale', rsc.dataset.defaultPrescale);
-//
-//         if(!('separator' in rsc.dataset))
-//             rsc.setAttribute('data-separator', ((rsc.dataset.src.includes('?')) ? '&' : '?'));
-//
-//         rsc.onload = (event) => {event.target.dataset.isLoading = 'doneLoading';};
-//     }
-// }
-
-// /**
-//  * Refreshes the linked resource (mainly image).
-//  * For refresh, the src is set to the previous url but with a new ?_=<timestamp> parameter to avoid caching
-//  * @param rsc element handle, e.g. from getElementById().
-//  * The resource needs a src-attribute.
-//  */
-// function refreshStaticImageResource(rsc) {
-//     window.requestAnimationFrame(()=>{refreshStaticImageResource(rsc);});
-//     if(rsc.dataset.pc < rsc.dataset.prescale) {
-//         rsc.dataset.pc++;
-//         return;
-//     }
-//     // console.log("prescale elapsed");
-//     rsc.dataset.pc = 0;
-//
-//     if(rsc.dataset.isLoading === "loading") {
-//         rsc.dataset.prescale++;
-//         // rsc.setAttribute('title', 'refresh every ' + rsc.dataset.prescale + ' loading cycles');
-//         // rsc.attr('title', '');
-//         rsc.dataset.refreshRetries++;
-//         if(rsc.dataset.refreshRetries > 50) { //if data did not load in time for 50 rounds, the source is probably bad
-//             //console.log('switch to slow retry');
-//             rsc.classList.add('slowLoading');
-//             rsc.dataset.prescale = (20 * rsc.dataset.defaultPrescale);
-//         }
-//         else {
-//             // console.log("still busy loading, skipping reloading");
-//             return;
-//         }
-//     }
-//     rsc.dataset.refreshRetries = 0;
-//     rsc.classList.remove('slowLoading');
-//     if(rsc.dataset.prescale >= (20 * rsc.dataset.defaultPrescale))
-//         rsc.dataset.prescale = rsc.dataset.defaultPrescale;
-//
-//     // console.log("loading new image");
-//
-//     let appendix = "" + rsc.dataset.separator + "_=" + (new Date().valueOf());
-//     rsc.setAttribute('src', "" + rsc.dataset.src + appendix);
-//
-//     rsc.dataset.isLoading = "loading";
-// }
-
-// //based on https://github.com/aruntj/mjpeg-readable-stream
-// function refreshMjpegImageResource(rsc) {
-//     fetch(rsc.dataset.src)
-//         .then((resp) => {
-//             if (!resp.ok) {
-//                 throw Error("fetch response !ok");
-//             }
-//             if(!resp.body) {
-//                 throw Error("response body not supported");
-//             }
-//
-//             const reader = resp.body.getReader();
-//             let headerString = '';
-//             let contentLength = -1;
-//             let bodyBytes = 0;
-//             let imageBuffer = null;
-//
-//             const getLength = (headerString) => {
-//                 let contentLength = -1;
-//                 headerString.split('\n').forEach((headerLine) => {
-//                     if(headerLine.toLowerCase().includes("content-length")) {
-//                         contentLength = headerLine.substring(headerLine.lastIndexOf(":")+1).trim();
-//                     }
-//                 });
-//                 return contentLength;
-//             };
-//
-//             const readMjpeg = () => {
-//                 reader.read().then(({done, value}) => {
-//                     if (done) {
-//                         window.requestAnimationFrame(refreshMjpegImageResource);
-//                         return;
-//                     }
-//                     for (let byte = 0; byte < value.length; byte++) {
-//                         if ((value[byte] === 0xFF) && (byte+1 < value.length) && (value[byte + 1] === 0xD8)) {
-//                             contentLength = getLength(headerString);
-//                             imageBuffer = new Uint8Array(new ArrayBuffer(contentLength));
-//                         }
-//                         if (contentLength <= 0) {
-//                             headerString += String.fromCharCode(value[byte]);
-//                         } else if (bodyBytes < contentLength) {
-//                             imageBuffer[bodyBytes] = value[byte];
-//                             bodyBytes++;
-//                         } else {
-//                             let imageBlobUrl = URL.createObjectURL(new Blob([imageBuffer], {type: 'image/jpeg'}));
-//                             rsc.src = imageBlobUrl;
-//
-//                             contentLength = 0;
-//                             bodyBytes = 0;
-//                             headerString = '';
-//                         }
-//                     }
-//                     window.requestAnimationFrame(readMjpeg);
-//                 }).catch(error => {
-//                     console.log(error);
-//                 })
-//             }
-//             window.requestAnimationFrame(readMjpeg);
-//         })
-//         .catch(() => {
-//             window.requestAnimationFrame(refreshMjpegImageResource);
-//             throw Error("Fetch error!");
-//         });
-//
-// }
 
 function enableGamepadConnectionEventListeners() {
     window.addEventListener("gamepadconnected", gamepadConnectCallback);

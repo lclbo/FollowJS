@@ -23,13 +23,15 @@ async function createWindow () {
     fullscreenable: true
   });
   // winRef.setAlwaysOnTop(true);
-  winRef.webContents.openDevTools();
+  // winRef.webContents.openDevTools();
 
-  await winRef.loadFile(path.join(__dirname, 'main.html'), {query: {"app": app.getName(), "ver": app.getVersion()}});
-
+  // !IMPORTANT: Needs to be defined before loadFile or won't be fired correctly on Windows
+  // (see https://github.com/electron/electron/issues/25253#issuecomment-1299966191)
   winRef.once('ready-to-show', () => {
     winRef.show();
   });
+
+  await winRef.loadFile(path.join(__dirname, 'main.html'), {query: {"app": app.getName(), "ver": app.getVersion()}});
 
 
   winRef.on('closed', () => {

@@ -1,12 +1,26 @@
 /* FollowJS */
 
+.theme-default {
+    --tc-foreground: #ffffff;
+    --tc-background: #1e2328;
+    --tc-border: #762551;
+    --tc-background-semitransparent: #762551AA;
+    --tc-text: #cccccc;
+    --tc-text-dark: #aaaaaa;
+    --tc-text-barelyVisible: #ffffff18;
+    --tc-text-barelyVisible-hover: #008080FF;
+    --tc-text-inverse: var(--tc-background);
+    --tc-text-shadow: 0 0 3px var(--tc-foreground);
+    --tc-text-shadow-slim: 0 0 1px var(--tc-foreground);
+}
+
 *, *::before, *::after {
     box-sizing: border-box;
 }
 
 body {
     margin: 0;
-    color: #1e2328;
+    color: var(--tc-text-dark);
     background-color: #ffffff;
     font-size: 1rem;
     line-height: 1.5;
@@ -41,14 +55,14 @@ body {
     text-align: center;
     width: 100%;
     height: 100vh;
-    background-color: #1e2328;
+    background-color: var(--tc-background);
 }
 
 #mainDrawArea {
     width: 95vw;
     height: fit-content;
     aspect-ratio: 16/9;
-    border: .25rem solid #762551;
+    border: .25rem solid var(--tc-border);
     box-sizing: border-box;
     overflow: hidden;
     position: relative;
@@ -91,8 +105,9 @@ body {
     left: 50%;
     padding: 2rem;
     transform: translate(-50%,-50%);
-    background-color: #b43a79;
-    border: .5rem solid #762551FF;
+    /*background-color: #b43a79;*/
+    background-color: var(--tc-background);
+    border: .5rem solid var(--tc-border);
     border-radius: 1rem;
     z-index: 1005;
 }
@@ -101,7 +116,8 @@ body {
     position: absolute;
     top: 50%;
     left: 50%;
-    background-color: #762551AA;
+    background-color: var(--tc-background-semitransparent);
+    color: var(--tc-text-inverse);
     /*color: #ced4da;*/
     width: max-content;
     height: 5rem;
@@ -145,8 +161,8 @@ body {
     position: absolute;
     top: 50%;
     left: 50%;
-    background-color: #762551CC;
-    color: #cccccc;
+    background-color: var(--tc-background-semitransparent);
+    color: var(--tc-text);
     z-index: 900;
     box-sizing: border-box;
     text-align: left;
@@ -158,7 +174,7 @@ body {
 }
 .spotContextMenu div:first-child {
     font-weight: bold;
-    border-bottom: 2px solid grey;
+    border-bottom: 2px solid var(--tc-text);
 }
 
 .spotContextMenuHighlight {
@@ -182,7 +198,7 @@ body {
 }
 
 .spotStatusOverlayGroup {
-    border: .25rem solid #762551;
+    border: .25rem solid var(--tc-border);
     padding: 0;
     margin-right: 1rem;
     margin-left: 1rem;
@@ -193,7 +209,8 @@ body {
     text-align: left;
     width: 100%;
     overflow: hidden;
-    color: #dddddd;
+    /*opacity: 0.75;*/
+    color: var(--tc-text);
     mix-blend-mode: difference;
     border-right: 3px solid #FF0000;
 }
@@ -237,7 +254,9 @@ body {
 }
 
 #inputOverlayText {
-    background-color: #ECECECFF;
+    background-color: var(--tc-background);
+    color: var(--tc-text);
+    /*background-color: #ECECECFF;*/
 }
 
 .backgroundFlashRed {
@@ -248,7 +267,7 @@ body {
         background-color: #8B0000FF;
     }
     100% {
-        background-color: #ECECECFF;
+        background-color: var(--tc-background);
     }
 }
 
@@ -281,7 +300,7 @@ body {
 }
 
 #dmxTable {
-    color: #aaaaaa;
+    color: var(--tc-text-dark);
     /*table-layout: fixed;*/
     /*width: auto;*/
     border-collapse: collapse;
@@ -291,19 +310,19 @@ body {
     font-weight: bold;
 }
 #dmxTableHeader td {
-    border-bottom: 1px solid #aaaaaa;
+    border-bottom: 1px solid var(--tc-text-dark);
 }
 
 .barelyVisibleFooter {
     position: fixed;
     bottom: 0;
     right: 0;
-    color: #ffffff18;
+    color: var(--tc-text-barelyVisible);
     padding-right: .2rem;
     padding-bottom: .2rem;
     font-size: .85rem;
     cursor: default;
 }
 .barelyVisibleFooter:hover {
-    color: #008080FF;
+    color: var(--tc-text-barelyVisible-hover);
 }

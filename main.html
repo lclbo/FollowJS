@@ -11,16 +11,19 @@
     </script>
     <title>FollowJS</title>
 </head>
-<body>
+<body class="theme-default">
     <div id="outerArea">
         <div id="mainDrawArea">
             <div id="controllerConnectOverlay" class="cameraImageHugeWarningTextOverlay">Waiting for controller…</div>
             <div id="inputOverlay" class="textInputOverlay hidden">
                 <label for="inputOverlayText">Calibration Data for Spot <span id="inputOverlaySpotNo">?</span>:</label>
+                <br>
                 <textarea rows="10" cols="48" id="inputOverlayText"></textarea>
                 <br>
-                <button onclick="endImportCalibration();">Cancel</button>
-                <button id="inputOverlaySubmitButton">Submit</button>
+                <button onclick="endImportCalibration();">Cancel &amp; Close</button>
+                <button id="inputOverlaySubmitButton">Import Data</button>
+                <br>
+                <p>Use "Store Config" to permanently save the new calibration.</p>
             </div>
             <img id="mainWebcamImage" alt="Camera image will be here" class="webcam">
 
