@@ -2,9 +2,9 @@
   "spotMarkerColors": ["green", "blue", "purple", "yellow"],
   "image": {
     "comment_imageSource": "For ZoneMinder: use /cgi-bin/zms instead of /cgi-bin/nph-zms, since nph (non-parsed header) does not respect any modified headers such as Access-Control-Allow-Origin",
-    "imageSource": "http://zoneminder.wbko.net/zm/cgi-bin/zms?scale=100&width=1280px&height=720px&mode=jpeg&maxfps=20&monitor=1&user=status&pass=status",
-    "comment_imageType": "valid options: jpeg (reloading frame by frame) | mjpeg (reading continuous video stream) | key (for external video keying, defined by keyColor)",
-    "imageType": "jpeg",
+    "imageSource": "",
+    "comment_imageType": "valid options: jpeg (reloading frame by frame) | mjpeg (reading continuous video stream) | key (static color, e.g. for external video keying, defined by keyColor)",
+    "imageType": "key",
     "keyColor": "rgb(255,0,213)",
     "imageRateDivider": 3
   },
