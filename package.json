@@ -1,6 +1,6 @@
 {
   "name": "followjs",
-  "version": "1.9.1",
+  "version": "2.0.0",
   "productName": "FollowJS",
   "description": "ArtNet FollowSpot control",
   "main": "index.js",
@@ -14,8 +14,8 @@
   },
   "private": true,
   "devDependencies": {
-    "electron": "^33.0.1",
-    "electron-builder": "^25.1.8"
+    "electron": "^42.4.1",
+    "electron-builder": "^26.15.3"
   },
   "build": {
     "appId": "com.lclausing.followjs",
@@ -32,7 +32,12 @@
   },
   "dependencies": {
     "jspack": "^0.0.4",
-    "npm-check-updates": "^17.1.4",
-    "requirejs": "^2.3.7"
+    "node-check-update": "^0.0.0",
+    "npm-check-updates": "^22.2.3",
+    "requirejs": "^2.3.8"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true,
+    "electron-winstaller@5.4.0": true
   }
 }

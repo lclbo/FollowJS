@@ -1,17 +1,22 @@
 "use strict";
 
 /*
-TODO:
-- move calibration handling and control into spots
-- make contextMenu a property of each spot, mainView gets a paintMenus() method to paint all _opened_ menus
-- create FollowJSKeyboard
-- move all readAxes and readButtons to Gamepad object
+TODO: All completed!
+- ✅ move calibration handling and control into spots
+- ✅ make contextMenu a property of each spot, mainView gets a paintMenus() method to paint all _opened_ menus
+- ✅ create FollowJSKeyboard
+- ✅ move all readAxes and readButtons to Gamepad object
+- ✅ get ArtNet config + target IPs from spot configs, maybe even infer broadcast IP
+- ✅ single shared ArtNet sender for all spots on the same universe
+- ✅ consistent spot indexing: spot1.json → spotNumber 1, spots[0]
  */
 
 const dmxLib = require('./dependencies/js/libDmxArtNet');
 const FollowJSGamepad = require('./dependencies/js/FollowJSGamepad');
 const FollowJSSpot = require('./dependencies/js/FollowJSSpot');
 const FollowJSMainView = require('./dependencies/js/FollowJSMainView');
+const FollowJSKeyboard = require('./dependencies/js/FollowJSKeyboard');
+const spotIndex = require('./dependencies/js/FollowJSSpotIndex');
 
 global.systemConf = loadConfigFromFile("systemConf");
 global.fixtureLib = loadConfigFromFile("fixtureLib");
@@ -22,23 +27,26 @@ if(fixtureLib === undefined || fixtureLib === null) throw new Error("Fixture Lib
 if(gamepadLib === undefined || gamepadLib === null) throw new Error("Gamepad Library could not be loaded!");
 
 global.mainView = new FollowJSMainView();
+global.keyboard = new FollowJSKeyboard();
 
 let dmxArtNet, artNetSenderA;
 
 let gamepadIntervalHandle = null;
-let globalTimestamp = new Date();
 
-let calibrationActive = false;
-let calibrationSpotNo = undefined;
-let calibrationValues = new Array(9*9);
-let calibrationStep = 1;
+global.calibrationActive = false;
+global.calibrationSpotNo = undefined;
+global.calibrationValues = new Array(9*9);
+global.calibrationStep = 1;
+global.globalTimestamp = new Date();
 
 let x_img_max, y_img_max, r_img_min, r_img_max;
 
-let keyboardControlSpotNo = 1;
 let connectedGamepads = new Array(4);
+let gamepadConnectTime = {};
 // let spots = [];
 global.spots = [];
+
+Object.assign(global, spotIndex);
 
 function init() {
     dmxArtNet = new dmxLib.DmxArtNet({
@@ -48,13 +56,7 @@ function init() {
         hosts: ["127.0.0.1"] // Interfaces to listen to, all by default
     });
 
-    //TODO: get ArtNet config + target IPs from spot configs, maybe even infer broadcast IP
-    artNetSenderA = dmxArtNet.newSender({
-        ip: '10.0.20.255',
-        subnet: 15,
-        universe: 15,
-        net: 0,
-    });
+    artNetSenderA = createSharedArtNetSender();
 
     createAllSpotsFromConfigFiles();
 }
@@ -64,14 +66,14 @@ function createAllSpotsFromConfigFiles() {
     const fs = require("fs");
     try {
         let pathStr = "" + getConfigPath() + "/spots";
-        let files = fs.readdirSync(pathStr);
+        let files = fs.readdirSync(pathStr)
+            .filter((file) => file.endsWith(".json"))
+            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
         files.forEach((file)=> {
-            if(file.endsWith(".json")) {
-                let fileNameWithoutExtension = file.substring(0, file.lastIndexOf(".json"));
-                createSpotFromConfigFile(fileNameWithoutExtension, artNetSenderA);
-                numberOfSpotsCreated++;
-            }
+            let fileNameWithoutExtension = file.substring(0, file.lastIndexOf(".json"));
+            createSpotFromConfigFile(fileNameWithoutExtension);
+            numberOfSpotsCreated++;
         });
     }
     catch(e) {
@@ -82,29 +84,99 @@ function createAllSpotsFromConfigFiles() {
     return numberOfSpotsCreated;
 }
 
-function createSpotFromConfigFile(filename, artNetSender) {
+function getSpotNumberFromFilename(filename) {
+    let match = filename.match(/(\d+)$/);
+    if(match)
+        return Number.parseInt(match[1], 10);
+    return undefined;
+}
+
+function getArtNetConnectionFromConfig() {
+    const fs = require("fs");
+    let connection = {
+        ip: "10.0.20.255",
+        net: 0,
+        subnet: 0,
+        universe: 0
+    };
+
+    try {
+        let pathStr = "" + getConfigPath() + "/spots";
+        let files = fs.readdirSync(pathStr).filter((file) => file.endsWith(".json"))
+            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        if(files.length > 0) {
+            let spotConfig = JSON.parse(fs.readFileSync(pathStr + "/" + files[0]).toString());
+            if(spotConfig.connection) {
+                connection.net = spotConfig.connection.net ?? connection.net;
+                connection.subnet = spotConfig.connection.subnet ?? connection.subnet;
+                connection.universe = spotConfig.connection.universe ?? connection.universe;
+                if(spotConfig.connection.ip)
+                    connection.ip = spotConfig.connection.ip;
+            }
+        }
+    }
+    catch(e) {
+        console.log("ArtNet connection config fallback: " + e);
+    }
+
+    return connection;
+}
+
+function createSharedArtNetSender() {
+    let connection = getArtNetConnectionFromConfig();
+
+    return dmxArtNet.newSender({
+        ip: connection.ip,
+        subnet: connection.subnet,
+        universe: connection.universe,
+        net: connection.net,
+    });
+}
+
+function createSpotFromConfigFile(filename) {
     const fs = require("fs");
     try {
         let jsonStr = fs.readFileSync("" +getConfigPath() + "/spots/" + filename + ".json");
         let spotConfig = JSON.parse(jsonStr.toString());
         spotConfig.sourceFileName = filename;
-        let nextFreeSpotNo = Object.keys(spots).length + 1;
 
-        spots[nextFreeSpotNo] = new FollowJSSpot(nextFreeSpotNo, spotConfig, artNetSender);
+        let spotNumber = getSpotNumberFromFilename(filename);
+        if(spotNumber === undefined)
+            spotNumber = getSortedSpotIndices().length + 1;
+
+        let spotIndex = spotIndexFromNumber(spotNumber);
+        if(spots[spotIndex] !== undefined) {
+            console.log("createSpotFromConfigFile: spot " + spotNumber + " already exists, skipping " + filename);
+            return;
+        }
+
+        // spot1.json → spotNumber 1, spots[0]
+        spots[spotIndex] = new FollowJSSpot(spotNumber, spotConfig, artNetSenderA);
     }
     catch(e) {
         console.log("createSpotFromConfigFile Error: "+e);
     }
 }
 
-function storeSpotToConfigFile(spotNo) {
+function storeSpotToConfigFile(spotNo, updateHome = true) {
     const fs = require("fs");
     try {
-        let spot = spots[spotNo];
-        spot.setCurrentStateAsHomeConfig();
+        let spot = getSpot(spotNo);
+        if(spot === undefined)
+            throw new Error("spot " + spotNo + " not found");
+
+        if(updateHome)
+            spot.setCurrentStateAsHomeConfig();
+
         let filename = spot.config.sourceFileName;
-        fs.writeFileSync(""+getConfigPath()+"/spots/"+filename+".json", JSON.stringify(spot.config, null, 2));
-        // console.log("Config stored.");
+        if(filename === undefined || filename === null)
+            throw new Error("spot " + spotNo + " has no sourceFileName");
+
+        let configForDisk = {...spot.config};
+        delete configForDisk.sourceFileName;
+
+        fs.writeFileSync(""+getConfigPath()+"/spots/"+filename+".json", JSON.stringify(configForDisk, null, 2));
+        conditionalLog("stored config for spot " + spotNo + " to " + filename + ".json");
     }
     catch(e) {
         console.log("store Config Error: "+e);
@@ -166,23 +238,37 @@ function importCalibrationFromText() {
     }
 }
 
+function parseCalibrationCoefficient(line) {
+    let lineMatches = [...line.matchAll(/([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)/g)];
+    if(lineMatches.length < 2)
+        return null;
+
+    let valueA = Number.parseFloat(lineMatches[0][0]);
+    let valueB = Number.parseFloat(lineMatches[1][0]);
+    if(Number.isNaN(valueA) || Number.isNaN(valueB))
+        return null;
+
+    return [valueA, valueB];
+}
+
 function importCalibration(spotNo, calibString) {
     let calibArrayA = [];
     let calibArrayB = [];
 
     let calibStrLines = calibString.split(/\r?\n/);
 
-    calibStrLines.forEach((line,lineNo) => {
-        let lineMatches = [...line.matchAll(/([+-]*\d.?\d+e[+-]\d{2})/g)];
-        if(lineMatches.length === 2) {
-            calibArrayA.push(Number.parseFloat(""+lineMatches[0]));
-            calibArrayB.push(Number.parseFloat(""+lineMatches[1]));
+    calibStrLines.forEach((line) => {
+        let coefficients = parseCalibrationCoefficient(line);
+        if(coefficients !== null) {
+            calibArrayA.push(coefficients[0]);
+            calibArrayB.push(coefficients[1]);
         }
     });
     if(calibArrayA.length === 6 && calibArrayB.length === 6) {
-        spots[spotNo].config.translation.regression.a = calibArrayA;
-        spots[spotNo].config.translation.regression.b = calibArrayB;
-        // storeSpotToConfigFile(spotNo);
+        let spot = getSpot(spotNo);
+        spot.config.translation.regression.a = calibArrayA;
+        spot.config.translation.regression.b = calibArrayB;
+        storeSpotToConfigFile(spotNo, false);
         mainView.drawSpots(); //update spot position
         endImportCalibration();
     }
@@ -194,95 +280,70 @@ function importCalibration(spotNo, calibString) {
 }
 
 function initCalibration(spotNo) {
-    if(calibrationActive)
-        endCalibration();
-
-    document.getElementById('downloadButtonLanding').innerHTML = '';
-    document.getElementById('cancelCalibrationButton').classList.remove("hidden");
-    mainView.hideAllContextMenus();
-    console.log("init calibration");
-    calibrationActive = true;
-    calibrationStep = 1;
-    calibrationSpotNo = spotNo;
-    hideAllSpotMarkerExceptFor(spotNo);
-    hideAllSpotStatusExceptFor(spotNo);
-    // blinkSpotMarker(spotNo, 2);
-    setSpotStatusOpacity(spotNo, 0.3);
-    // blinkSpotStatus(spotNo, 2);
-    mainView.showGridOverlay();
-    showCalibrationPoint();
+    getSpot(spotNo).initCalibration();
 }
 function storeCalibrationPoint() {
-    calibrationValues[calibrationStep-1] = [spots[calibrationSpotNo].state.x, spots[calibrationSpotNo].state.y];
-    calibrationStep++;
-    showCalibrationPoint();
-    if(calibrationStep > calibrationValues.length) {
-        exportCalibration();
-        endCalibration();
-    }
+    if(global.calibrationSpotNo === undefined)
+        return;
+    getSpot(global.calibrationSpotNo).storeCalibrationPoint();
 }
 function skipCalibrationPoint() {
-    calibrationValues[calibrationStep-1] = [null, null];
-    calibrationStep++;
-    showCalibrationPoint();
-    if(calibrationStep > calibrationValues.length) {
-        exportCalibration();
-        endCalibration();
-    }
+    if(global.calibrationSpotNo === undefined)
+        return;
+    getSpot(global.calibrationSpotNo).skipCalibrationPoint();
 }
 function endCalibration() {
-    mainView.highlightImageCoord(false);
-    showAllSpotMarker();
-    showAllSpotStatus();
-    setSpotStatusOpacity(calibrationSpotNo, 1);
-    document.getElementById('cancelCalibrationButton').classList.add("hidden");
-    mainView.hideGridOverlay();
-    calibrationActive = false;
+    if(global.calibrationSpotNo === undefined)
+        return;
+    getSpot(global.calibrationSpotNo).endCalibration();
 }
 
-function exportCalibration() {
-    let plainText = "";
-    calibrationValues.forEach(function(elem, eIdx) {
-        if(elem[0] === null || elem[1] === null)
-            plainText = plainText + "-1 -1\n";
-        else
-            plainText = plainText + ""+elem[0]+" "+elem[1]+"\n";
-    });
+global.storeCalibrationPoint = storeCalibrationPoint;
+global.skipCalibrationPoint = skipCalibrationPoint;
+global.endCalibration = endCalibration;
+global.storeSpotToConfigFile = storeSpotToConfigFile;
+global.initCalibration = initCalibration;
+global.startImportCalibration = startImportCalibration;
 
-    let plainBlob = new Blob([plainText], {type: 'application/octet-stream;charset=utf-8'});
-    let plainLink = window.URL.createObjectURL(plainBlob);
-    let a = document.createElement("a");
-    a.download = 'calibration-'+globalTimestamp.getFullYear()+'-'+(globalTimestamp.getMonth()+1)+'-'+globalTimestamp.getDate()+'-spot'+calibrationSpotNo+'.txt';
-    a.href = plainLink;
-    a.innerHTML = "<button class='button-green'>Download Calibration</button>";
-    document.getElementById('downloadButtonLanding').appendChild(a);
-    document.getElementById('cancelCalibrationButton').classList.add("hidden");
-}
-
-function showCalibrationPoint() {
-    mainView.highlightImageCoord(true,(((calibrationStep-1) % 9) + 1) * 0.1,(Math.floor((calibrationStep-1) / 9) + 1) * 0.1);
-}
 
 function prepareDMXTable() {
     let titleDone = false;
-    spots.forEach(function(spot, spotNo) {
+    forEachSpot(function(spot) {
+        let spotNo = spot.spotNumber;
         if(!titleDone) {
             document.getElementById("dmxTableHeader").insertAdjacentHTML("beforeend", "<tr></tr>");
+            let headerRow = document.getElementById("dmxTableHeader").firstElementChild;
+            headerRow.insertAdjacentHTML("beforeend", "<td>Sp</td><td>Rev</td><td class=\"dmxTableArtnetStart\">Net</td><td>Sub</td><td>Uni</td><td class=\"dmxTableArtnetEnd\">Adr</td>");
             for(const chan of Object.values(spot.fixture.dmx.channels)) {
-                document.getElementById("dmxTableHeader").firstElementChild.insertAdjacentHTML("beforeend", "<td>"+chan.short+"</td>");
+                headerRow.insertAdjacentHTML("beforeend", "<td>"+chan.short+"</td>");
             }
             titleDone = true;
         }
 
-        document.getElementById("dmxTableBody").insertAdjacentHTML("afterbegin", "<tr></tr>");
+        document.getElementById("dmxTableBody").insertAdjacentHTML("beforeend", "<tr></tr>");
+        let bodyRow = document.getElementById("dmxTableBody").lastElementChild;
+        let conn = spot.config.connection;
+        bodyRow.insertAdjacentHTML("beforeend",
+            "<td>"+spotNo+"</td>" +
+            "<td><input type=\"checkbox\" id=\"reverseDrag["+spotNo+"]\"></td>" +
+            "<td class=\"dmxTableArtnetStart\">"+(conn.net ?? 0)+"</td>" +
+            "<td>"+(conn.subnet ?? 0)+"</td>" +
+            "<td>"+(conn.universe ?? 0)+"</td>" +
+            "<td class=\"dmxTableArtnetEnd\">"+conn.address+"</td>"
+        );
         for(const chanNo of Object.keys(spot.fixture.dmx.channels)) {
-            document.getElementById("dmxTableBody").firstElementChild.insertAdjacentHTML("beforeend", '<td id="dmx['+spotNo+']['+chanNo+']">x</td>');
+            bodyRow.insertAdjacentHTML("beforeend", '<td id="dmx['+spotNo+']['+chanNo+']">x</td>');
         }
+
+        document.getElementById("reverseDrag["+spotNo+"]").addEventListener("change", (event) => {
+            mainView.setReverseDragEnabled(spotNo, event.target.checked);
+        });
     });
 }
 
 function printDMX() {
-    spots.forEach(function(spot, spotNo) {
+    forEachSpot(function(spot) {
+        let spotNo = spot.spotNumber;
         for(const chan of Object.keys(spot.dmxBuffer)) {
             document.getElementById("dmx["+spotNo+"]["+chan+"]").textContent = spot.dmxBuffer[chan];
         }
@@ -290,7 +351,8 @@ function printDMX() {
 }
 
 function printAllSpotStatus() {
-    spots.forEach(function(spotRef, spotNumber) {
+    forEachSpot(function(spotRef) {
+        let spotNumber = spotRef.spotNumber;
         document.getElementById("gauge["+spotNumber+"][dim]").style.width = ""+(spotRef.state.dim * 100).toString() + "%";
         document.getElementById("gauge["+spotNumber+"][color]").style.width = ""+((spotRef.state.colorWheelIndex / (spotRef.fixture.dmx.colorWheelArray.length - 1)) * 100).toString() + "%";
         document.getElementById("gauge["+spotNumber+"][color]").style.backgroundColor = ""+spotRef.fixture.dmx.colorWheelArray[spotRef.state.colorWheelIndex].visual;
@@ -299,29 +361,10 @@ function printAllSpotStatus() {
     });
 }
 
-function setSpotStatusOpacity(spotNo, opacity) {
-    let spotStatusElement = document.getElementById("spotStatusOverlay["+spotNo+"]");
-    spotStatusElement.style.opacity = Math.min(1,Math.max(0,opacity)).toString();
-}
-
-function showAllSpotStatus() {
-    spots.forEach(function(spot, spotNo) {
-        let spotStatusElement = document.getElementById("spotStatusOverlay["+spotNo+"]");
-        spotStatusElement.classList.remove("hiddenVis");
-    });
-}
-
-function hideAllSpotStatusExceptFor(dontHideSpotNo) {
-    spots.forEach(function(spot, spotNo) {
-        if(spotNo !== dontHideSpotNo) {
-            let spotStatusElement = document.getElementById("spotStatusOverlay["+spotNo+"]");
-            spotStatusElement.classList.add("hiddenVis");
-        }
-    });
-}
 
 function drawAnimationFrameCallback() {
     mainView.drawSpots();
+    mainView.paintMenus();
     printDMX();
     printAllSpotStatus();
     window.requestAnimationFrame(drawAnimationFrameCallback);
@@ -338,122 +381,52 @@ function stopBlinkSpotMarker(spotNo) {
 }
 
 function stopBlinkAllSpotMarker() {
-    spots.forEach(function(spot, spotNo) {
-       stopBlinkSpotMarker(spotNo);
+    forEachSpot(function(spot) {
+       stopBlinkSpotMarker(spot.spotNumber);
     });
 }
 
-function showAllSpotMarker() {
-    spots.forEach(function(spot, spotNo) {
-        let spotMarkerElement = document.getElementById("spotMarker["+spotNo+"]");
-        spotMarkerElement.classList.remove("hiddenVis");
-    });
-}
-
-function hideAllSpotMarkerExceptFor(dontHideSpotNo) {
-    spots.forEach(function(spot, spotNo) {
-        if(spotNo !== dontHideSpotNo) {
-            let spotMarkerElement = document.getElementById("spotMarker["+spotNo+"]");
-            spotMarkerElement.classList.add("hiddenVis");
-        }
-    });
-}
 
 function enableCaptureKeyboard() {
-    window.removeEventListener('keydown', keyboardInputCallback);
-    window.addEventListener('keydown', keyboardInputCallback);
+    global.keyboard.enable();
 }
 function disableCaptureKeyboard() {
-    window.removeEventListener('keydown', keyboardInputCallback);
-}
-function keyboardInputCallback(e) {
-    // console.log("(which:" + (e.which) + ", key:" + (e.key) + ", code:" + (e.code) + ")");
-    let singleDigit = new RegExp("^[0-9]$");
-    if(singleDigit.test(e.key) && Number.parseInt(e.key) in spots) {
-        keyboardControlSpotNo = Number.parseInt(e.key);
-    }
-    else if(keyboardControlSpotNo in spots) {
-        switch(e.key) {
-            case systemConf.keyboardControl.mapping.home:
-                spots[keyboardControlSpotNo].homeSpot();
-                break;
-            case systemConf.keyboardControl.mapping.yInc:
-                spots[keyboardControlSpotNo].moveSpot(0,spots[keyboardControlSpotNo].config.increment.y * systemConf.keyboardControl.config.modifier);
-                break;
-            case systemConf.keyboardControl.mapping.xDec:
-                spots[keyboardControlSpotNo].moveSpot(-1 * spots[keyboardControlSpotNo].config.increment.x * systemConf.keyboardControl.config.modifier,0);
-                break;
-            case systemConf.keyboardControl.mapping.yDec:
-                spots[keyboardControlSpotNo].moveSpot(0,-1 * spots[keyboardControlSpotNo].config.increment.y * systemConf.keyboardControl.config.modifier);
-                break;
-            case systemConf.keyboardControl.mapping.xInc:
-                spots[keyboardControlSpotNo].moveSpot(spots[keyboardControlSpotNo].config.increment.x * systemConf.keyboardControl.config.modifier,0);
-                break;
-            case systemConf.keyboardControl.mapping.smaller:
-                spots[keyboardControlSpotNo].resizeSpot(-1 * spots[keyboardControlSpotNo].config.increment.r * systemConf.keyboardControl.config.modifier);
-                break;
-            case systemConf.keyboardControl.mapping.bigger:
-                spots[keyboardControlSpotNo].resizeSpot(spots[keyboardControlSpotNo].config.increment.r * systemConf.keyboardControl.config.modifier);
-                break;
-            case systemConf.keyboardControl.mapping.dimDown:
-                spots[keyboardControlSpotNo].dimSpot(-1 * spots[keyboardControlSpotNo].config.increment.dim * systemConf.keyboardControl.config.modifier);
-                break;
-            case systemConf.keyboardControl.mapping.dimUp:
-                spots[keyboardControlSpotNo].dimSpot(spots[keyboardControlSpotNo].config.increment.dim * systemConf.keyboardControl.config.modifier);
-                break;
-            case systemConf.keyboardControl.mapping.nextColor:
-                spots[keyboardControlSpotNo].rotateColorWheel(+1);
-                break;
-            case systemConf.keyboardControl.mapping.prevColor:
-                spots[keyboardControlSpotNo].rotateColorWheel(-1);
-                break;
-            case systemConf.keyboardControl.mapping.cto:
-                spots[keyboardControlSpotNo].snapToCTO();
-                break;
-            case systemConf.keyboardControl.mapping.snap:
-                spots[keyboardControlSpotNo].snapSpot();
-                break;
-            case systemConf.keyboardControl.mapping.storeCalibrationPoint:
-                if(calibrationActive)
-                    storeCalibrationPoint();
-                break;
-            case systemConf.keyboardControl.mapping.skipCalibrationPoint:
-                if(calibrationActive)
-                    skipCalibrationPoint();
-                break;
-        }
-    }
+    global.keyboard.disable();
 }
 
 function lockContextMenu(spotNo) {
-    spots[spotNo].contextMenuState.locked = true;
+    getSpot(spotNo).contextMenuState.locked = true;
 }
 
 function unlockContextMenu(spotNo) {
-    spots[spotNo].contextMenuState.locked = false;
+    getSpot(spotNo).contextMenuState.locked = false;
 }
 
 function executeMacro(spotNo, macroNo) {
-    let macro = spots[spotNo].fixture.dmx.macros[macroNo];
+    let spot = getSpot(spotNo);
+    let macro = spot.fixture.dmx.macros[macroNo];
 
     // document.getElementById("macroButton["+spotNo+"]["+macroNo+"]").firstElementChild.classList.remove("hiddenVis");
     console.log("execute Macro: " + macro.name);
     blinkSpotMarker(spotNo, 1);
-    let oldValue = spots[spotNo].dmxBuffer[macro.channel];
-    spots[spotNo].dmxBuffer[macro.channel] = macro.value;
+    let oldValue = spot.dmxBuffer[macro.channel];
+    spot.dmxBuffer[macro.channel] = macro.value;
     window.setTimeout(setChannelToValue, (Number.parseInt(macro.hold)*1000), spotNo, macro.channel, oldValue, macroNo);
     mainView.hideContextMenu(spotNo);
     lockContextMenu(spotNo);
     window.setTimeout(unlockContextMenu, (Number.parseInt(macro.hold)*1000) + 500, spotNo);
     window.setTimeout(stopBlinkSpotMarker, (Number.parseInt(macro.hold)*1000) + 500, spotNo);
-    spots[spotNo].sendDMX(true);
-    window.setTimeout(()=>{spots[spotNo].sendDMX(true);}, 500);
+    spot.sendDMX(true);
+    window.setTimeout(()=>{spot.sendDMX(true);}, 500);
 }
 
+global.executeMacro = executeMacro;
+
 function setChannelToValue(spotNo,chan,val,macroNo) {
-    spots[spotNo].dmxBuffer[chan] = val;
+    let spot = getSpot(spotNo);
+    spot.dmxBuffer[chan] = val;
     document.getElementById("macroButton["+spotNo+"]["+macroNo+"]").firstElementChild.classList.add("hiddenVis");
-    spots[spotNo].sendDMX(true);
+    spot.sendDMX(true);
 }
 
 function enableGamepadConnectionEventListeners() {
@@ -465,29 +438,110 @@ function enableGamepadConnectionEventListeners() {
 //     window.removeEventListener("gamepaddisconnected",gamepadDisconnectCallback);
 // }
 
-function gamepadConnectCallback(event) {
-    conditionalLog("gamepad " + event.gamepad.index + " (" + event.gamepad.id + ") connected");
+function isSpotIndexAssigned(spotIndex) {
+    return connectedGamepads.some((gamepad) => gamepad && gamepad.assignedSpot.spotIndex === spotIndex);
+}
 
-    if(spots[event.gamepad.index+1] !== undefined) {
-        //there is a spot available to bind to this new gamepad
-        connectedGamepads[event.gamepad.index] = new FollowJSGamepad(event.gamepad, spots[event.gamepad.index+1]);
-        connectedGamepads[event.gamepad.index].rumble("welcome");
+function findFirstUnassignedSpotByIndex() {
+    for(const spotIndex of getSortedSpotIndices()) {
+        if(!isSpotIndexAssigned(spotIndex))
+            return spots[spotIndex];
+    }
+    return undefined;
+}
+
+function gamepadHasUserInput(gamepad) {
+    if(gamepad.buttons.some((button) => button.pressed))
+        return true;
+    return gamepad.axes.some((axis) => Math.abs(axis) > 0.1);
+}
+
+function tryAssignUnboundGamepads() {
+    let gamepads = navigator.getGamepads();
+    let candidates = [];
+
+    for(let padIndex = 0; padIndex < gamepads.length; padIndex++) {
+        if(gamepads[padIndex] === null || gamepads[padIndex].connected !== true)
+            continue;
+        if(connectedGamepads[padIndex] !== undefined)
+            continue;
+        if(gamepadConnectTime[padIndex] === undefined)
+            gamepadConnectTime[padIndex] = Date.now();
+        if(!gamepadHasUserInput(gamepads[padIndex]))
+            continue;
+
+        candidates.push({
+            padIndex: padIndex,
+            gamepad: gamepads[padIndex],
+            connectTime: gamepadConnectTime[padIndex] ?? Number.MAX_SAFE_INTEGER
+        });
     }
 
-    if(!(systemConf.keyboardControl.config.alwaysEnabled))
-        disableCaptureKeyboard(); //if we have a controller, the debug keyboard control is no longer needed
+    candidates.sort((a, b) => {
+        if(a.connectTime !== b.connectTime)
+            return a.connectTime - b.connectTime;
+        return a.padIndex - b.padIndex;
+    });
+
+    for(const candidate of candidates) {
+        let spot = findFirstUnassignedSpotByIndex();
+        if(spot === undefined)
+            break;
+
+        connectedGamepads[candidate.padIndex] = new FollowJSGamepad(candidate.gamepad, spot);
+        connectedGamepads[candidate.padIndex].rumble("welcome");
+        conditionalLog("gamepad " + candidate.padIndex + " assigned to spot " + spot.spotNumber + " (index " + spot.spotIndex + ")");
+
+        if(!(systemConf.keyboardControl.config.alwaysEnabled))
+            disableCaptureKeyboard();
+
+        if(hasConnectedGamepad())
+            document.querySelector("#controllerConnectOverlay").classList.add("hidden");
+    }
+
+    if(candidates.length > 0)
+        printConnectedGamepadCount();
+}
+
+function getConnectedGamepadCount() {
+    return connectedGamepads.filter((gamepad) => gamepad !== undefined).length;
+}
+
+function printConnectedGamepadCount() {
+    let assignments = getSortedSpotIndices()
+        .filter((spotIndex) => isSpotIndexAssigned(spotIndex))
+        .map((spotIndex) => "Sp" + spots[spotIndex].spotNumber)
+        .join(",");
+    let label = "GP: " + getConnectedGamepadCount();
+    if(assignments.length > 0)
+        label += " [" + assignments + "]";
+    document.getElementById("gamepadDebugInfo").innerText = label;
+}
+
+function hasConnectedGamepad() {
+    return connectedGamepads.some((gamepad) => gamepad !== undefined);
+}
+
+function gamepadConnectCallback(event) {
+    if(!event.gamepad || event.gamepad.connected !== true)
+        return;
+
+    conditionalLog("gamepad " + event.gamepad.index + " (" + event.gamepad.id + ") connected");
+
+    if(gamepadConnectTime[event.gamepad.index] === undefined)
+        gamepadConnectTime[event.gamepad.index] = Date.now();
 
     enableGamepadCyclicReader();
-
-    if(connectedGamepads.length > 0)
-        document.querySelector("#controllerConnectOverlay").classList.add("hidden");
 }
 
 function gamepadDisconnectCallback(event) {
     delete connectedGamepads[event.gamepad.index];
+    delete gamepadConnectTime[event.gamepad.index];
 
-    if(connectedGamepads.length === 0)
+    if(!hasConnectedGamepad())
         document.querySelector("#controllerConnectOverlay").classList.remove("hidden");
+
+    printConnectedGamepadCount();
 }
 
 function enableGamepadCyclicReader() {
@@ -496,143 +550,27 @@ function enableGamepadCyclicReader() {
 }
 
 function gamepadCyclicReader() {
+    tryAssignUnboundGamepads();
+
     let gamepads = navigator.getGamepads();
     if(gamepads.length > 0) {
         for(let padIndex=0;padIndex<gamepads.length;padIndex++) {
             if(gamepads[padIndex] === null)
                 continue;   //no pad connected to this slot
 
+            if(connectedGamepads[padIndex] === undefined)
+                continue;   //no FollowJS spot bound to this gamepad slot
+
             if(gamepads[padIndex].connected !== true)
                 console.log("active gamepad disconnected");
 
             connectedGamepads[padIndex].update(gamepads[padIndex]);
+            connectedGamepads[padIndex].read();
         }
     }
-    gamepadReadAxes();
-    gamepadReadButtons();
     // window.requestAnimationFrame(gamepadCyclicReader);
 }
 
-function gamepadReadAxes() {
-    connectedGamepads.forEach(function(gamepadObject) {
-        let movementModifier = gamepadObject.assignedSpot.control.gamepad.config.modifier;
-
-        if(gamepadObject.currentState.buttons[gamepadObject.assignedSpot.control.gamepad.mapping.analogButtons.faster].pressed === true) {
-            movementModifier = movementModifier * (1 + gamepadObject.currentState.buttons[gamepadObject.assignedSpot.control.gamepad.mapping.analogButtons.faster].value);
-        }
-
-        let pad1axisX = gamepadObject.currentState.axes[gamepadObject.assignedSpot.control.gamepad.mapping.axes.x];
-        let pad1axisY = gamepadObject.currentState.axes[gamepadObject.assignedSpot.control.gamepad.mapping.axes.y];
-
-        let absX = Math.abs(pad1axisX);
-        let absY = Math.abs(pad1axisY);
-        let dirX = Math.sign(pad1axisX);
-        let dirY = Math.sign(pad1axisY);
-
-        let pad1moveX = ((absX > gamepadObject.assignedSpot.control.gamepad.config.deadZones.movement) ? ((absX-gamepadObject.assignedSpot.control.gamepad.config.deadZones.movement)/(1-gamepadObject.assignedSpot.control.gamepad.config.deadZones.movement)*dirX) : 0);
-        let pad1moveY = ((absY > gamepadObject.assignedSpot.control.gamepad.config.deadZones.movement) ? ((absY-gamepadObject.assignedSpot.control.gamepad.config.deadZones.movement)/(1-gamepadObject.assignedSpot.control.gamepad.config.deadZones.movement)*dirY) : 0);
-
-        if(pad1moveX !== 0 || pad1moveY !== 0) {
-            let moveX = Math.sign(gamepadObject.assignedSpot.control.gamepad.mapping.axesDirections.x) * pad1moveX * movementModifier * gamepadObject.assignedSpot.config.increment.x;
-            let moveY = Math.sign(gamepadObject.assignedSpot.control.gamepad.mapping.axesDirections.y) * pad1moveY * movementModifier * gamepadObject.assignedSpot.config.increment.y;
-            gamepadObject.assignedSpot.moveSpot(moveX,moveY);
-        }
-
-        // Iris
-        let pad1axisR = gamepadObject.currentState.axes[gamepadObject.assignedSpot.control.gamepad.mapping.axes.r];
-        let absR = Math.abs(pad1axisR);
-        let dirR = Math.sign(pad1axisR);
-        let pad1moveR = ((absR > gamepadObject.assignedSpot.control.gamepad.config.deadZones.other) ? ((absR-gamepadObject.assignedSpot.control.gamepad.config.deadZones.other)/(1-gamepadObject.assignedSpot.control.gamepad.config.deadZones.other)*dirR) : 0);
-        if(pad1moveR !== 0) {
-            let moveR = Math.sign(gamepadObject.assignedSpot.control.gamepad.mapping.axesDirections.r) * pad1moveR * gamepadObject.assignedSpot.control.gamepad.config.modifier * gamepadObject.assignedSpot.config.increment.r;
-
-            gamepadObject.assignedSpot.resizeSpot(moveR);
-        }
-
-        // Dimmer
-        let pad1axisDim = gamepadObject.currentState.axes[gamepadObject.assignedSpot.control.gamepad.mapping.axes.dim];
-        let absDim = Math.abs(pad1axisDim);
-        let dirDim = Math.sign(pad1axisDim);
-        let pad1moveDim = ((absDim > gamepadObject.assignedSpot.control.gamepad.config.deadZones.other) ? ((absDim-gamepadObject.assignedSpot.control.gamepad.config.deadZones.other)/(1-gamepadObject.assignedSpot.control.gamepad.config.deadZones.other)*dirDim) : 0);
-        if(pad1moveDim !== 0) {
-            let moveDim = Math.sign(gamepadObject.assignedSpot.control.gamepad.mapping.axesDirections.dim) * pad1moveDim * gamepadObject.assignedSpot.control.gamepad.config.modifier * gamepadObject.assignedSpot.config.increment.dim;
-
-            gamepadObject.assignedSpot.dimSpot(moveDim);
-        }
-    });
-}
-
-function gamepadReadButtons() {
-    connectedGamepads.forEach(function(gamepadObject) {
-        gamepadObject.currentState.buttons.forEach(function (buttonState, index) {
-            if (gamepadObject.currentState.buttons[index].pressed === true) {
-                if (gamepadObject.lastButtonState[index].pressed === false) { //rising edge
-                    // console.log("(rising edge) press on button " + index);
-
-                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.snap)
-                        gamepadObject.assignedSpot.snapSpot();
-
-                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.home)
-                        gamepadObject.assignedSpot.homeSpot();
-
-                    if (calibrationActive) {
-                        if(calibrationSpotNo === gamepadObject.assignedSpot.spotNumber) {
-                            if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.storeCalibrationPoint) {
-                                storeCalibrationPoint();
-                            }
-                            if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.skipCalibrationPoint) {
-                                skipCalibrationPoint();
-                            }
-                        }
-                    }
-
-                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.colorWheelNext)
-                        gamepadObject.assignedSpot.rotateColorWheel(+1);
-
-                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.colorWheelPrev)
-                        gamepadObject.assignedSpot.rotateColorWheel(-1);
-
-                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.snapCTO)
-                        gamepadObject.assignedSpot.snapToCTO();
-
-                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.contextMenuShow)
-                        mainView.toggleContextMenu(gamepadObject.assignedSpot.spotNumber);
-
-                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.contextMenuUp)
-                        gamepadObject.assignedSpot.scrollContextMenu(-1);
-
-                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.contextMenuDown)
-                        gamepadObject.assignedSpot.scrollContextMenu(1);
-
-                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.contextMenuSelect) {
-                        if(!gamepadObject.assignedSpot.contextMenuState.locked && gamepadObject.assignedSpot.contextMenuState.visible)
-                            executeMacro(gamepadObject.assignedSpot.spotNumber, gamepadObject.assignedSpot.contextMenuState.selectedIndex);
-                    }
-
-                    if(index === gamepadObject.assignedSpot.control.gamepad.mapping.buttons.contextMenuCancel)
-                        mainView.hideContextMenu(gamepadObject.assignedSpot.spotNumber);
-                }
-                else { //continuous press
-                    // console.log("still pressing button " + index);
-                    switch (index) {
-                        case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.focusUp:
-                            gamepadObject.assignedSpot.focusSpot(gamepadObject.assignedSpot.config.increment.focus * gamepadObject.assignedSpot.control.gamepad.config.modifier)
-                            break;
-                        case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.focusDown:
-                            gamepadObject.assignedSpot.focusSpot(-1 * gamepadObject.assignedSpot.config.increment.focus * gamepadObject.assignedSpot.control.gamepad.config.modifier)
-                            break;
-                        case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.frostUp:
-                            gamepadObject.assignedSpot.frostSpot(gamepadObject.assignedSpot.config.increment.frost * gamepadObject.assignedSpot.control.gamepad.config.modifier)
-                            break;
-                        case gamepadObject.assignedSpot.control.gamepad.mapping.buttons.frostDown:
-                            gamepadObject.assignedSpot.frostSpot(-1 * gamepadObject.assignedSpot.config.increment.frost * gamepadObject.assignedSpot.control.gamepad.config.modifier)
-                            break;
-                    }
-                }
-            }
-        });
-    });
-}
 
 function populateVersionInfoStringInFooter() {
     let versionString = "";
@@ -662,8 +600,11 @@ document.addEventListener('DOMContentLoaded', function () {
     init();
 
     populateVersionInfoStringInFooter();
+    printConnectedGamepadCount();
 
-    document.body.addEventListener('resize', mainView.updateWindowSize);
+    document.getElementById("cancelCalibrationButton").addEventListener("click", endCalibration);
+
+    new ResizeObserver(() => mainView.updateWindowSize()).observe(document.getElementById("mainDrawArea"));
     mainView.updateWindowSize();
     mainView.initializeImage();
 

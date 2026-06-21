@@ -1,4 +1,5 @@
 "use strict"
+const regression = require('./FollowJSRegression');
 /**
  *
  */
@@ -7,8 +8,14 @@ class FollowJSMainView {
     #y_img_max;
     #r_img_min;
     #r_img_max;
+    #dragState;
 
     constructor() {
+        this.#dragState = null;
+        this.updateWindowSize = this.updateWindowSize.bind(this);
+        this.onSpotMarkerPointerDown = this.onSpotMarkerPointerDown.bind(this);
+        this.onSpotMarkerPointerMove = this.onSpotMarkerPointerMove.bind(this);
+        this.onSpotMarkerPointerUp = this.onSpotMarkerPointerUp.bind(this);
         this.updateWindowSize();
     }
 
@@ -21,13 +28,21 @@ class FollowJSMainView {
         this.#r_img_max = 30 * (document.getElementById("mainDrawArea").clientWidth / 800);
     }
 
+    // Expose private properties for spot access
+    get x_img_max() { return this.#x_img_max; }
+    get y_img_max() { return this.#y_img_max; }
+    get r_img_min() { return this.#r_img_min; }
+    get r_img_max() { return this.#r_img_max; }
+
     addSpotsToDOM() {
-        spots.forEach(function(spot, spotNo) {
+        global.forEachSpot(function(spot) {
+            let spotNo = spot.spotNumber;
             document.getElementById("mainDrawArea").insertAdjacentHTML('beforeend',
                 '<svg class="spotMarker" id="spotMarker['+spotNo+']" width="50" height="50">\n' +
-                '   <circle cx="50%" cy="50%" r="50" fill="'+global.systemConf.spotMarkerColors[((spotNo-1) % (global.systemConf.spotMarkerColors.length))]+'" stroke="'+global.systemConf.spotMarkerColors[((spotNo-1) % (global.systemConf.spotMarkerColors.length))]+'" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" onclick="mainView.toggleContextMenu('+spotNo+');" />\n' +
+                '   <circle cx="50%" cy="50%" r="50" fill="'+global.systemConf.spotMarkerColors[((spotNo-1) % (global.systemConf.spotMarkerColors.length))]+'" stroke="'+global.systemConf.spotMarkerColors[((spotNo-1) % (global.systemConf.spotMarkerColors.length))]+'" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".4" />\n' +
                 '</svg>'
             );
+            this.setupSpotMarkerInteraction(spotNo);
 
             document.getElementById("mainDrawArea").insertAdjacentHTML('beforeend',
                 '<div class="spotContextMenu" id="spotContextMenu['+spotNo+']"></div>'
@@ -52,15 +67,80 @@ class FollowJSMainView {
         }.bind(this));
     }
 
-    drawSpots() {
-        spots.forEach(function(spot, spotNo) {
-            let x = spot.state.x;
-            let y = spot.state.y;
-            let x2 = Math.pow(spot.state.x,2);
-            let y2 = Math.pow(spot.state.y,2);
+    setupSpotMarkerInteraction(spotNo) {
+        let spotMarkerElement = document.getElementById("spotMarker["+spotNo+"]");
+        spotMarkerElement.addEventListener("pointerdown", (event) => this.onSpotMarkerPointerDown(event, spotNo));
+        spotMarkerElement.addEventListener("pointermove", this.onSpotMarkerPointerMove);
+        spotMarkerElement.addEventListener("pointerup", (event) => this.onSpotMarkerPointerUp(event, spotNo));
+        spotMarkerElement.addEventListener("pointercancel", (event) => this.onSpotMarkerPointerUp(event, spotNo));
+    }
 
-            let pos_x = spot.config.translation.regression.a[0] + (spot.config.translation.regression.a[1] * x) + (spot.config.translation.regression.a[2] * y) + (spot.config.translation.regression.a[3] * x * y) + (spot.config.translation.regression.a[4] * x2) + (spot.config.translation.regression.a[5] * y2);
-            let pos_y = spot.config.translation.regression.b[0] + (spot.config.translation.regression.b[1] * x) + (spot.config.translation.regression.b[2] * y) + (spot.config.translation.regression.b[3] * x * y) + (spot.config.translation.regression.b[4] * x2) + (spot.config.translation.regression.b[5] * y2);
+    onSpotMarkerPointerDown(event, spotNo) {
+        if(!global.getSpot(spotNo).reverseDragEnabled)
+            return;
+
+        event.preventDefault();
+        this.#dragState = {
+            spotNo: spotNo,
+            pointerId: event.pointerId,
+            didMove: false
+        };
+        event.currentTarget.setPointerCapture(event.pointerId);
+    }
+
+    onSpotMarkerPointerMove(event) {
+        if(this.#dragState === null || event.pointerId !== this.#dragState.pointerId)
+            return;
+        if(!global.getSpot(this.#dragState.spotNo).reverseDragEnabled)
+            return;
+
+        this.#dragState.didMove = true;
+        this.applyReverseDragPosition(event);
+    }
+
+    onSpotMarkerPointerUp(event, spotNo) {
+        if(this.#dragState !== null && this.#dragState.spotNo === spotNo && event.pointerId === this.#dragState.pointerId) {
+            if(event.currentTarget.hasPointerCapture(event.pointerId))
+                event.currentTarget.releasePointerCapture(event.pointerId);
+            this.#dragState = null;
+            return;
+        }
+
+        if(!global.getSpot(spotNo).reverseDragEnabled)
+            this.toggleContextMenu(spotNo);
+    }
+
+    applyReverseDragPosition(event) {
+        let mainDrawArea = document.getElementById("mainDrawArea");
+        let areaRect = mainDrawArea.getBoundingClientRect();
+        let leftPx = event.clientX - areaRect.left;
+        let topPx = event.clientY - areaRect.top;
+        let regressionCoords = regression.screenPixelsToRegressionCoords(leftPx, topPx, this.#x_img_max, this.#y_img_max);
+        let spot = global.getSpot(this.#dragState.spotNo);
+        let spotCoords = regression.inverseRegression(
+            spot.config.translation.regression,
+            regressionCoords[0],
+            regressionCoords[1],
+            spot.state.x,
+            spot.state.y,
+            spot.config.boundaries
+        );
+
+        spot.setPosition(spotCoords[0], spotCoords[1]);
+    }
+
+    setReverseDragEnabled(spotNo, enabled) {
+        let spot = global.getSpot(spotNo);
+        spot.reverseDragEnabled = enabled === true;
+        document.getElementById("spotMarker["+spotNo+"]").classList.toggle("reverseDragEnabled", spot.reverseDragEnabled);
+    }
+
+    drawSpots() {
+        global.forEachSpot(function(spot) {
+            let spotNo = spot.spotNumber;
+            let pos = regression.forwardRegression(spot.config.translation.regression, spot.state.x, spot.state.y);
+            let pos_x = pos[0];
+            let pos_y = pos[1];
 
             let pos_r = spot.state.r;
             let radius = ((pos_r*(this.#r_img_max-this.#r_img_min)+this.#r_img_min).toString());
@@ -78,86 +158,30 @@ class FollowJSMainView {
                 spotMarkerElement.firstElementChild.setAttribute("r", radius);
             if(opacity !== spotMarkerElement.firstElementChild.getAttribute("fill-opacity"))
                 spotMarkerElement.firstElementChild.setAttribute("fill-opacity", opacity);
-
-            if(spot.contextMenuState.visible === true)
-                this.updateContextMenu(spotNo);
         }.bind(this));
     }
 
-    updateContextMenu(spotNo) {
-        let spot = spots[spotNo];
-        let spotContextMenuElement = document.getElementById("spotContextMenu["+spotNo+"]");
-
-        let x = spot.state.x;
-        let y = spot.state.y;
-        let x2 = Math.pow(x,2);
-        let y2 = Math.pow(y,2);
-
-        let pos_x = spot.config.translation.regression.a[0] + (spot.config.translation.regression.a[1] * x) + (spot.config.translation.regression.a[2] * y) + (spot.config.translation.regression.a[3] * x * y) + (spot.config.translation.regression.a[4] * x2) + (spot.config.translation.regression.a[5] * y2);
-        let pos_y = spot.config.translation.regression.b[0] + (spot.config.translation.regression.b[1] * x) + (spot.config.translation.regression.b[2] * y) + (spot.config.translation.regression.b[3] * x * y) + (spot.config.translation.regression.b[4] * x2) + (spot.config.translation.regression.b[5] * y2);
-
-        let translate_y = ((1-pos_y) > 0.65) ? "-100%" : "0";
-        let translate_x = (pos_x > 0.75) ? "-100%" : "0";
-        spotContextMenuElement.style.transform = "translate("+translate_x+","+translate_y+")";
-
-        spotContextMenuElement.style.top = ((1-pos_y) * this.#y_img_max).toString()+"px";
-        spotContextMenuElement.style.left = (pos_x * this.#x_img_max).toString()+"px";
-
-        spotContextMenuElement.childNodes.forEach(function (childElement) {
-            childElement.classList.remove("spotContextMenuHighlight");
+    paintMenus() {
+        global.forEachSpot(function(spot) {
+            if(spot.contextMenuState.visible === true) {
+                spot.updateContextMenu();
+            }
         });
-        document.getElementById('macroButton['+spotNo+']['+spot.contextMenuState.selectedIndex+']').classList.add("spotContextMenuHighlight");
     }
 
-    drawContextMenu(spotNo) {
-        let spot = spots[spotNo];
-        let spotContextMenuElement = document.getElementById("spotContextMenu["+spotNo+"]");
-
-        spot.fixture.dmx.macros.forEach(function(macro,key) {
-            let selectClass = "";
-            if(key === spot.contextMenuState.selectedIndex)
-                selectClass = "spotContextMenuHighlight";
-
-            document.getElementById("spotContextMenu["+spotNo+"]").insertAdjacentHTML("beforeend", '' +
-                '<div class="'+selectClass+'" id="macroButton['+spotNo+']['+key+']" onclick="executeMacro('+spotNo+','+key+')">' +
-                // '<span class="spinner-grow spinner-grow-sm hiddenVis" role="status"></span>&nbsp;' +
-                macro.short+'' +
-                '</div>');
-        });
-
-        spotContextMenuElement.insertAdjacentHTML("beforeend", '<div id="calib['+spotNo+']" onclick="initCalibration('+spotNo+')"><small>Start Calibration</small></div>');
-        spotContextMenuElement.insertAdjacentHTML("beforeend", '<div id="importCalib['+spotNo+']" onclick="startImportCalibration('+spotNo+')"><small>Import Calibration</small></div>');
-        spotContextMenuElement.insertAdjacentHTML("beforeend", '<div id="store['+spotNo+']" onclick="storeSpotToConfigFile('+spotNo+')"><small>Store Home &amp; Config</small></div>');
-        spotContextMenuElement.insertAdjacentHTML("afterbegin", '<div>Spot #'+spotNo+'</div>');
-    }
 
     hideContextMenu(spotNo) {
-        let spotContextMenuElement = document.getElementById("spotContextMenu["+spotNo+"]");
-        spots[spotNo].contextMenuState.visible = false;
-        spotContextMenuElement.innerHTML = "";
+        global.getSpot(spotNo).hideContextMenu();
     }
 
     hideAllContextMenus() {
-        spots.forEach(function(spot,spotNo) {
-            this.hideContextMenu(spotNo);
-        }.bind(this));
+        global.forEachSpot(function(spot) {
+            spot.hideContextMenu();
+        });
     }
 
     toggleContextMenu(spotNo) {
-        let spotContextMenuElement = document.getElementById("spotContextMenu["+spotNo+"]");
-
-        if(spots[spotNo].contextMenuState.visible !== false) {
-            spots[spotNo].contextMenuState.visible = false;
-            spotContextMenuElement.innerHTML = "";
-        }
-        else {
-            if(!spots[spotNo].contextMenuState.locked) {
-                spots[spotNo].contextMenuState.visible = true;
-                spots[spotNo].contextMenuState.selectedIndex = 0;
-                this.drawContextMenu(spotNo);
-                this.updateContextMenu(spotNo);
-            }
-        }
+        global.getSpot(spotNo).toggleContextMenu();
     }
 
     highlightImageCoord(enable,x=0.5,y=0.5) {

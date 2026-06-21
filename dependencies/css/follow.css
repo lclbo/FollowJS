@@ -54,21 +54,26 @@ body {
     align-items: center;
     text-align: center;
     width: 100%;
-    height: 100vh;
+    min-height: 100vh;
     background-color: var(--tc-background);
+    display: flex;
+    flex-direction: column;
+    padding-top: 2.5vw;
+    padding-bottom: 1rem;
+    box-sizing: border-box;
 }
 
 #mainDrawArea {
-    width: 95vw;
-    height: fit-content;
+    width: min(95vw, calc((100vh - 12rem) * 16 / 9));
+    max-height: calc(100vh - 12rem);
+    height: auto;
     aspect-ratio: 16/9;
     border: .25rem solid var(--tc-border);
     box-sizing: border-box;
     overflow: hidden;
     position: relative;
-    top: 2.5vw;
-    left: 50%;
-    transform: translate(-50%,0);
+    margin: 0 auto;
+    flex-shrink: 0;
     /*cursor: crosshair;*/
 }
 
@@ -97,6 +102,19 @@ body {
     top: 0;
     left: 0;
     overflow: visible;
+    touch-action: none;
+}
+
+.spotMarker.reverseDragEnabled {
+    cursor: grab;
+}
+
+.spotMarker.reverseDragEnabled:active {
+    cursor: grabbing;
+}
+
+#dmxTable input[type="checkbox"] {
+    cursor: pointer;
 }
 
 .textInputOverlay {
@@ -244,13 +262,19 @@ body {
 }
 
 #calibrationMenu {
-    position: fixed;
+    position: relative;
     width: fit-content;
-    bottom: 0;
+    align-self: flex-start;
     text-align: left;
-    padding-left: 2rem;
-    padding-right: 2rem;
-    padding-bottom: 2rem;
+    padding: 0.75rem 2rem 0;
+    z-index: 1100;
+    pointer-events: auto;
+}
+
+#calibrationMenu button,
+#calibrationMenu a {
+    pointer-events: auto;
+    -webkit-app-region: no-drag;
 }
 
 #inputOverlayText {
@@ -290,13 +314,12 @@ body {
 }
 
 #dmxFooter {
+    margin-top: 0.5rem;
     margin-bottom: 1em;
-    position: fixed;
-    transform: translate(-50%,0);
+    position: relative;
     width: fit-content;
-    bottom: 0;
-    left: 50%;
     text-align: center;
+    flex-shrink: 0;
 }
 
 #dmxTable {
@@ -313,6 +336,16 @@ body {
     border-bottom: 1px solid var(--tc-text-dark);
 }
 
+#dmxTable .dmxTableArtnetStart {
+    border-left: 2px solid var(--tc-text-dark);
+    padding-left: 0.5em;
+}
+
+#dmxTable .dmxTableArtnetEnd {
+    border-right: 2px solid var(--tc-text-dark);
+    padding-right: 0.5em;
+}
+
 .barelyVisibleFooter {
     position: fixed;
     bottom: 0;
@@ -322,6 +355,11 @@ body {
     padding-bottom: .2rem;
     font-size: .85rem;
     cursor: default;
+    text-align: right;
+}
+
+#gamepadDebugInfo::after {
+    content: " · ";
 }
 .barelyVisibleFooter:hover {
     color: var(--tc-text-barelyVisible-hover);

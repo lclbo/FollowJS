@@ -7,7 +7,7 @@ class FollowJSGamepad {
     constructor(gamepadObject, spot) {
         this.id = gamepadObject.id;
         this.currentState = gamepadObject;
-        this.lastButtonState = gamepadObject.buttons;
+        this.lastButtonState = gamepadObject.buttons.map((button) => button.pressed);
         this.assignedSpot = spot;
         // this.lastUpdate = performance.now();
     }
@@ -15,7 +15,7 @@ class FollowJSGamepad {
     update(gamepadObject) {
         if(gamepadObject.id !== this.id)
             throw "FollowJSGamepad update: ID mismatch";
-        this.lastButtonState = this.currentState.buttons;
+        this.lastButtonState = this.currentState.buttons.map((button) => button.pressed);
         this.currentState = gamepadObject;
         // this.lastUpdate = performance.now();
     }
@@ -89,9 +89,9 @@ class FollowJSGamepad {
     }
 
     readButtons() {
-        this.currentState.buttons.forEach(function (buttonState, index) {
-            if (this.currentState.buttons[index].pressed === true) {
-                if (this.lastButtonState[index].pressed === false) { //rising edge
+        this.currentState.buttons.forEach((buttonState, index) => {
+            if (buttonState.pressed === true) {
+                if (this.lastButtonState[index] === false) { //rising edge
                     // console.log("(rising edge) press on button " + index);
 
                     if(index === this.assignedSpot.control.gamepad.mapping.buttons.snap)
@@ -100,13 +100,13 @@ class FollowJSGamepad {
                     if(index === this.assignedSpot.control.gamepad.mapping.buttons.home)
                         this.assignedSpot.homeSpot();
 
-                    if (calibrationActive) {
-                        if(calibrationSpotNo === this.assignedSpot.spotNumber) {
+                    if (global.calibrationActive) {
+                        if(global.calibrationSpotNo === this.assignedSpot.spotNumber) {
                             if(index === this.assignedSpot.control.gamepad.mapping.buttons.storeCalibrationPoint) {
-                                storeCalibrationPoint();
+                                global.storeCalibrationPoint();
                             }
                             if(index === this.assignedSpot.control.gamepad.mapping.buttons.skipCalibrationPoint) {
-                                skipCalibrationPoint();
+                                global.skipCalibrationPoint();
                             }
                         }
                     }
@@ -121,7 +121,7 @@ class FollowJSGamepad {
                         this.assignedSpot.snapToCTO();
 
                     if(index === this.assignedSpot.control.gamepad.mapping.buttons.contextMenuShow)
-                        mainView.toggleContextMenu(this.assignedSpot.spotNumber);
+                        global.mainView.toggleContextMenu(this.assignedSpot.spotNumber);
                     //TODO: modify
 
                     if(index === this.assignedSpot.control.gamepad.mapping.buttons.contextMenuUp)
@@ -132,12 +132,12 @@ class FollowJSGamepad {
 
                     if(index === this.assignedSpot.control.gamepad.mapping.buttons.contextMenuSelect) {
                         if(!this.assignedSpot.contextMenuState.locked && this.assignedSpot.contextMenuState.visible)
-                            executeMacro(this.assignedSpot.spotNumber, this.assignedSpot.contextMenuState.selectedIndex);
+                            global.executeMacro(this.assignedSpot.spotNumber, this.assignedSpot.contextMenuState.selectedIndex);
                         //TODO: modify
                     }
 
                     if(index === this.assignedSpot.control.gamepad.mapping.buttons.contextMenuCancel)
-                        mainView.hideContextMenu(this.assignedSpot.spotNumber);
+                        global.mainView.hideContextMenu(this.assignedSpot.spotNumber);
                 }
                 else { //continuous press
                     // console.log("still pressing button " + index);
