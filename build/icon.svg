@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+  <defs>
+    <linearGradient id="beamLeft" x1="180" y1="120" x2="520" y2="760" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="45%" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="beamRight" x1="844" y1="120" x2="504" y2="760" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="45%" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="hotspot" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 700) scale(220)">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="#121820"/>
+
+  <path d="M120 150 L430 860 L610 860 Z" fill="url(#beamLeft)"/>
+  <path d="M904 150 L594 860 L414 860 Z" fill="url(#beamRight)"/>
+  <ellipse cx="512" cy="700" rx="220" ry="90" fill="url(#hotspot)"/>
+</svg>

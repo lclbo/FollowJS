@@ -7,6 +7,7 @@ let winRef;
 async function createWindow () {
   winRef = new BrowserWindow({
     backgroundColor: 'teal',
+    icon: path.join(__dirname, 'build', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
     show: false,
     webPreferences: {
       devTools: true,
