@@ -32,5 +32,18 @@
       "storeCalibrationPoint": "Enter",
       "skipCalibrationPoint": "Escape"
     }
+  },
+    "virtualMarker": {
+    "assignedSpots": [1, 2],
+    "screenX": 0.5,
+    "screenY": 0.5,
+    "increment": {
+      "x": 2.79,
+      "y": 4.08,
+      "r": 10,
+      "frost": 10,
+      "focus": 10,
+      "dim": 25
+    }
   }
 }

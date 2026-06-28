@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 "use strict";
 
+/**
+ * @file Build app icons: SVG → PNG (resvg), then .icns / .ico for electron-builder.
+ */
+
 const { execFileSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");

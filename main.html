@@ -15,15 +15,25 @@
     <div id="outerArea">
         <div id="mainDrawArea">
             <div id="controllerConnectOverlay" class="cameraImageHugeWarningTextOverlay">Waiting for controller…</div>
-            <div id="inputOverlay" class="textInputOverlay hidden">
-                <label for="inputOverlayText">Calibration Data for Spot <span id="inputOverlaySpotNo">?</span>:</label>
-                <br>
-                <textarea rows="10" cols="48" id="inputOverlayText"></textarea>
-                <br>
-                <button onclick="endImportCalibration();">Cancel &amp; Close</button>
-                <button id="inputOverlaySubmitButton">Import Data</button>
-                <br>
-                <p>Use "Store Config" to permanently save the new calibration.</p>
+            <div id="regressionOverlay" class="regressionOverlay hidden">
+                <div class="regressionOverlayHeader">
+                    <h3><span id="regressionOverlayTitlePrefix">Regression</span> · Spot <span id="regressionOverlaySpotNo">?</span></h3>
+                    <button type="button" onclick="closeRegressionOverlay();">Close</button>
+                </div>
+                <p id="regressionRecommendation" class="regressionRecommendation hidden"></p>
+                <div id="regressionDegreeSummary" class="regressionDegreeSummary hidden"></div>
+                <div class="regressionOverlayBody">
+                    <pre id="regressionCoefficients" class="regressionCoefficients"></pre>
+                    <div id="regressionPlotLanding" class="regressionPlotLanding"></div>
+                </div>
+                <div id="regressionSelectionActions" class="regressionSelectionActions hidden"></div>
+                <div class="regressionPlotLegend">
+                    <span class="regressionLegendItem"><span class="regressionLegendSwatch regressionPlotCalibPoint"></span>Calib</span>
+                    <span class="regressionLegendItem"><span class="regressionLegendSwatch regressionPlotTargetPoint"></span>Target</span>
+                    <span class="regressionLegendItem"><span class="regressionLegendSwatch regressionPlotFitDeg2"></span>Deg 2</span>
+                    <span class="regressionLegendItem"><span class="regressionLegendSwatch regressionPlotFitDeg3"></span>Deg 3</span>
+                    <span class="regressionLegendItem"><span class="regressionLegendSwatch regressionPlotFitDeg4"></span>Deg 4</span>
+                </div>
             </div>
             <img id="mainWebcamImage" alt="Camera image will be here" class="webcam">
 
@@ -60,20 +70,72 @@
 
             <div id="spotStatusOverlayArea" class="spotStatusOverlayArea"></div>
 
+            <div id="controlModeSwitch" class="controlModeSwitch" role="group" aria-label="Control mode">
+                <span class="controlModeSwitchLabel">Mode</span>
+                <button type="button" id="controlModeVirtualMarker" class="controlModeButton is-active" aria-pressed="true">Virtual marker</button>
+                <button type="button" id="controlModeDirect" class="controlModeButton" aria-pressed="false">Direct</button>
+            </div>
+
+            <button type="button" id="helpOpenButton" class="helpOpenButton" onclick="toggleHelpOverlay();" aria-label="Show controls help" title="Controls help">?</button>
+
+            <div id="helpOverlay" class="helpOverlay hidden">
+                <div class="helpOverlayPanel">
+                    <div class="helpOverlayHeader">
+                        <h3>Controls</h3>
+                        <button type="button" onclick="closeHelpOverlay();">Close</button>
+                    </div>
+                    <div class="helpOverlayColumns">
+                        <div class="helpColumn" id="helpKeyboardColumn"></div>
+                        <div class="helpColumn" id="helpGamepadColumn"></div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <div id="calibrationMenu">
             <button id="cancelCalibrationButton" class="hidden button-red">Cancel Calibration</button>
-            <div id="downloadButtonLanding"></div>
+            <div id="regressionPendingBanner" class="regressionPendingBanner hidden">
+                <span>Spot <span id="regressionPendingSpotNo">?</span>: unsaved regression (degree <span id="regressionPendingDegree">?</span>, error <span id="regressionPendingError">?</span>)</span>
+                <div class="regressionPendingActions">
+                    <button type="button" class="button-green" onclick="acceptPendingRegression();">Accept &amp; Store</button>
+                    <button type="button" onclick="declinePendingRegression();">Decline &amp; Revert</button>
+                    <button type="button" onclick="reviewRegressionCandidates();">Review Candidates</button>
+                </div>
+            </div>
         </div>
 
         <div id="dmxFooter">
-            <table style="font-size: 0.6em;" id="dmxTable">
+            <table id="dmxTable">
                 <thead id="dmxTableHeader"></thead>
                 <tbody id="dmxTableBody"></tbody>
             </table>
+            <div id="gamepadListSection">
+                <table id="gamepadListTable">
+                    <thead>
+                        <tr>
+                            <th>Pad</th>
+                            <th>ID</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gamepadListBody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
+
+    <!-- debug only — Art-Net universe matrix (FollowJSArtNetDebug.js); uncomment to enable
+    <div id="artNetDebugOverlay" class="artNetDebugOverlay hidden">
+        <div class="artNetDebugHeader">
+            <h3>Art-Net universe <span class="artNetDebugTag">debug</span></h3>
+            <span id="artNetDebugTransmitCount" class="artNetDebugTransmitCount">tx: 0</span>
+            <button type="button" onclick="closeArtNetDebugOverlay();">Dismiss</button>
+        </div>
+        <div id="artNetDebugGrid" class="artNetDebugGrid" aria-label="Art-Net channels 1–512"></div>
+    </div>
+    -->
+
     <div class="barelyVisibleFooter"><span id="gamepadDebugInfo"></span><span id="versionInfo">-?-</span></div>
 
     <script src="dependencies/js/follow.js"></script>

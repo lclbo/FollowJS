@@ -1,5 +1,9 @@
 {
     "alphaBeam1500": {
+        "physicalRange": {
+            "pan": 540,
+            "tilt": 252
+        },
         "dmx": {
             "range": {
                 "x": {

@@ -3,6 +3,9 @@
     This is a modified version of "dmxnet" by "margau", https://github.com/margau/dmxnet
     available under MIT License: https://github.com/margau/dmxnet/blob/master/LICENSE
 
+    Art-Net ArtDMX UDP sender: 512-channel universe buffer, jspack-framed packets,
+    configurable net/subnet/universe and broadcast/target IP transmit.
+
     MIT License
 
     Copyright (c) 2017
@@ -26,6 +29,11 @@
     SOFTWARE.
  */
 
+/**
+ * @file Art-Net ArtDMX UDP sender (fork of margau/dmxnet). 512-channel universe buffer.
+ * @module libDmxArtNet
+ */
+
 const dgram = require('dgram');
 const jspack = require('jspack').jspack;
 
@@ -34,6 +42,7 @@ const ArtDmxHeaderFormat  = '!7sBHHBBBBH';
 const ArtDmxPayloadFormat = '512B';
 
 //dmxnet constructor
+/** @param {Object} [options] Parent options (verbose, oem). @constructor */
 function DmxArtNet(options) {
     this.verbose=options.verbose || 0;
     this.oem=options.oem || 2908; //OEM code hex
@@ -42,6 +51,7 @@ function DmxArtNet(options) {
     return this;
 }
 //get a new sender object
+/** @param {Object} options net, subnet, universe, ip, port. @returns {sender} */
 DmxArtNet.prototype.newSender=function(options) {
     return new sender(options,this);
 }
@@ -103,17 +113,26 @@ sender=function (options={},parent){
     } else {
         this.socket_ready=true;
     }
-    //Transmit first Frame
-    this.transmit();
+    // First Art-Net frame is sent only after FollowJS merges all spot buffers (see follow.js).
+}
 
-    //Send Frame all 1000ms even there is no channel change
-    this.interval=setInterval(() => {
-        this.transmit();
-    },1000);
+function normalizeArtNetPayload(payload, fallbackValues) {
+    let source = payload !== undefined && payload !== null ? payload : fallbackValues;
+    let normalized = new Array(512);
+    for(let i = 0; i < 512; i++) {
+        let value = source[i];
+        if(value === undefined || value === null || !Number.isFinite(value))
+            value = 0;
+        else
+            value = Math.max(0, Math.min(255, Math.floor(value)));
+        normalized[i] = value;
+    }
+    return normalized;
 }
 
 //Transmit function
-sender.prototype.transmit = function () {
+/** @param {number[]|Uint8Array} [payload] Immutable 512-channel frame; defaults to sender.values. */
+sender.prototype.transmit = function (payload) {
     // console.log("transmit ArtNet");
     //Only transmit if socket is ready
     if (this.socket_ready) {
@@ -122,6 +141,9 @@ sender.prototype.transmit = function () {
             this.ArtDmxSeq=1;
         }
 
+        let frame = normalizeArtNetPayload(payload, this.values);
+        let sequence = this.ArtDmxSeq;
+
         // disable sequential order functionality
         // this.ArtDmxSeq = 0;
 
@@ -129,11 +151,14 @@ sender.prototype.transmit = function () {
         // clearInterval(this.interval);
 
         //Build packet: ID Int8[8], OpCode Int16 0x5000 (conv. to 0x0050), ProtVer Int16, Sequence Int8, PhysicalPort Int8, SubnetUniverseNet Int16, Length Int16
-        // let udppacket = new Buffer(jspack.Pack(ArtDmxHeaderFormat + ArtDmxPayloadFormat, ["Art-Net", 0, 0x0050, 14, this.ArtDmxSeq, 0, this.subuni, this.net, this.values.length].concat(this.values)));
-        let udppacket = new Buffer.from(jspack.Pack(ArtDmxHeaderFormat + ArtDmxPayloadFormat, ["Art-Net", 0, 0x0050, 14, this.ArtDmxSeq, 0, this.subuni, this.net, this.values.length].concat(this.values)));
+        let udppacket = new Buffer.from(jspack.Pack(ArtDmxHeaderFormat + ArtDmxPayloadFormat, ["Art-Net", 0, 0x0050, 14, sequence, 0, this.subuni, this.net, frame.length].concat(frame)));
 
         //Increase Sequence Counter
         this.ArtDmxSeq++;
+
+        // debug only — optional hook for Art-Net universe matrix overlay (FollowJSArtNetDebug.js)
+        if(typeof this.onBeforeSend === "function")
+            this.onBeforeSend(frame, sequence);
 
         //Send UDP
         this.socket.send(udppacket, 0, udppacket.length, this.port, this.ip, function (err, bytes) {
@@ -183,24 +208,32 @@ sender.prototype.prepChannel = function (channel, value) {
  * @param channels array of channel values
  */
 sender.prototype.setChannels = function (start, channels) {
-    let index = start - 1;
-    let length = channels.length;
+    let base = start - 1;
     if((start > 512) || (start < 1)) {
         throw "setChannels: Channel must be between 1 and 512";
     }
-    if((start + length - 1) > 512) {
-        throw "setChannels: Channel Array exceeds 512";
-    }
-    channels.forEach((cVal,cIdx) => {
-        this.values[index+cIdx-1] = cVal;
-    });
 
-    // this.transmit();
+    for(const key of Object.keys(channels)) {
+        let channelOffset = Number(key);
+        if(!Number.isFinite(channelOffset))
+            continue;
+        let value = channels[key];
+        if(value === undefined)
+            continue;
+        let index = base + channelOffset - 1;
+        if(index < 0 || index >= 512)
+            continue;
+        if((index + 1) > 512) {
+            throw "setChannels: Channel Array exceeds 512";
+        }
+        this.values[index] = value;
+    }
 };
 
 //Stop sender
 sender.prototype.stop = function() {
-    clearInterval(this.interval);
+    if(this.interval !== undefined)
+        clearInterval(this.interval);
     this.socket.close();
 };
 

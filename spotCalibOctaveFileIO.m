@@ -1,4 +1,6 @@
 % Calibration for FollowJS spots
+% Forward and inverse polynomial regression (degrees 2–4) are computed in-app after calibration
+% (see dependencies/js/FollowJSRegression.js). This script remains for offline use.
 
 clear;
 pkg load image;

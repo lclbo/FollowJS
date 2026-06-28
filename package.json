@@ -1,6 +1,6 @@
 {
   "name": "followjs",
-  "version": "2.1.1",
+  "version": "2.4.0",
   "productName": "FollowJS",
   "description": "ArtNet FollowSpot control",
   "main": "index.js",
@@ -10,6 +10,7 @@
     "test": "electron .",
     "start": "electron .",
     "icons": "node scripts/generate-icons.js",
+    "backfill-inverse-regression": "node scripts/backfill-inverse-regression.js",
     "build:win": "electron-builder --win nsis portable --x64",
     "build:mac": "electron-builder --mac dmg zip --arm64",
     "build": "npm run icons && npm run build:win && npm run build:mac",

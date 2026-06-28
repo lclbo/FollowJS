@@ -1,31 +1,49 @@
 "use strict"
-const regression = require('./FollowJSRegression');
+
 /**
- *
+ * @file Camera overlay: markers, reverse drag, context menus, image source (static/MJPEG/key).
+ * @class FollowJSMainView
  */
+
+const regression = require('./FollowJSRegression');
+
+/** Keep in sync with `--z-*` in follow.css. */
+const VIRTUAL_MARKER_Z_INDEX = 1200;
+const SPOT_MARKER_Z_BASE = 1100;
+
 class FollowJSMainView {
     #x_img_max;
     #y_img_max;
     #r_img_min;
     #r_img_max;
     #dragState;
+    #mainDrawArea;
+    #virtualMarkerElement;
+    #virtualMarkerVisual;
 
     constructor() {
         this.#dragState = null;
+        this.#mainDrawArea = null;
+        this.#virtualMarkerElement = null;
+        this.#virtualMarkerVisual = null;
         this.updateWindowSize = this.updateWindowSize.bind(this);
         this.onSpotMarkerPointerDown = this.onSpotMarkerPointerDown.bind(this);
         this.onSpotMarkerPointerMove = this.onSpotMarkerPointerMove.bind(this);
         this.onSpotMarkerPointerUp = this.onSpotMarkerPointerUp.bind(this);
+        this.onVirtualMarkerPointerDown = this.onVirtualMarkerPointerDown.bind(this);
+        this.onVirtualMarkerPointerMove = this.onVirtualMarkerPointerMove.bind(this);
+        this.onVirtualMarkerPointerUp = this.onVirtualMarkerPointerUp.bind(this);
         this.updateWindowSize();
     }
 
     updateWindowSize() {
-        this.#x_img_max = document.getElementById("mainDrawArea").clientWidth;
-        this.#y_img_max = document.getElementById("mainDrawArea").clientHeight;
-        // element.offset<Height|Width> includes borders, element.client<Height|Width> does not
+        if(this.#mainDrawArea === null)
+            this.#mainDrawArea = document.getElementById("mainDrawArea");
+        this.#x_img_max = this.#mainDrawArea.clientWidth;
+        this.#y_img_max = this.#mainDrawArea.clientHeight;
 
-        this.#r_img_min = 10 * (document.getElementById("mainDrawArea").clientWidth / 800);
-        this.#r_img_max = 30 * (document.getElementById("mainDrawArea").clientWidth / 800);
+        this.#r_img_min = 10 * (this.#mainDrawArea.clientWidth / 800);
+        this.#r_img_max = 30 * (this.#mainDrawArea.clientWidth / 800);
     }
 
     // Expose private properties for spot access
@@ -44,27 +62,111 @@ class FollowJSMainView {
             );
             this.setupSpotMarkerInteraction(spotNo);
 
+            spot.dom.marker = document.getElementById("spotMarker["+spotNo+"]");
+            spot.dom.marker.style.zIndex = String(SPOT_MARKER_Z_BASE - (spotNo - 1));
+            spot.dom.markerCircle = spot.dom.marker.firstElementChild;
+
             document.getElementById("mainDrawArea").insertAdjacentHTML('beforeend',
-                '<div class="spotContextMenu" id="spotContextMenu['+spotNo+']"></div>'
+                '<div class="spotContextMenu hidden" id="spotContextMenu['+spotNo+']"></div>'
             );
+            spot.dom.contextMenu = document.getElementById("spotContextMenu["+spotNo+"]");
 
             document.getElementById("spotStatusOverlayArea").insertAdjacentHTML('beforeend',
                 '<div id="spotStatusOverlay['+spotNo+']" class="spotStatusOverlayGroup" style="border-color: '+global.systemConf.spotMarkerColors[((spotNo-1) % (global.systemConf.spotMarkerColors.length))]+';">\n' +
-                '   <div class="spotStatusGauge" id="gauge['+spotNo+'][dim]">\n' +
-                '       <div class="spotStatusOverlayDim">Dimmer</div>\n' +
+                '   <div class="spotStatusGaugeRow">\n' +
+                '       <span class="spotStatusGaugeLabel">Dim</span>\n' +
+                '       <div class="spotStatusGaugeTrack"><div class="spotStatusGaugeFill spotStatusOverlayDim" id="gauge['+spotNo+'][dim]"></div></div>\n' +
                 '   </div>\n' +
-                '   <div class="spotStatusGauge" id="gauge['+spotNo+'][color]\">\n' +
-                '       <div class="spotStatusOverlayColor">Color</div>\n' +
+                '   <div class="spotStatusGaugeRow">\n' +
+                '       <span class="spotStatusGaugeLabel">Col</span>\n' +
+                '       <div class="spotStatusGaugeTrack"><div class="spotStatusGaugeFill spotStatusOverlayColor" id="gauge['+spotNo+'][color]"></div></div>\n' +
                 '   </div>\n' +
-                '   <div class="spotStatusGauge" id="gauge['+spotNo+'][focus]\">\n' +
-                '       <div class="spotStatusOverlayFocus">Focus</div>\n' +
+                '   <div class="spotStatusGaugeRow">\n' +
+                '       <span class="spotStatusGaugeLabel">Foc</span>\n' +
+                '       <div class="spotStatusGaugeTrack"><div class="spotStatusGaugeFill spotStatusOverlayFocus" id="gauge['+spotNo+'][focus]"></div></div>\n' +
                 '   </div>\n' +
-                '   <div class="spotStatusGauge" id="gauge['+spotNo+'][frost]\">\n' +
-                '       <div class="spotStatusOverlayFrost">Frost</div>\n' +
+                '   <div class="spotStatusGaugeRow">\n' +
+                '       <span class="spotStatusGaugeLabel">Frost</span>\n' +
+                '       <div class="spotStatusGaugeTrack"><div class="spotStatusGaugeFill spotStatusOverlayFrost" id="gauge['+spotNo+'][frost]"></div></div>\n' +
                 '   </div>\n' +
                 '</div>'
             );
+            spot.dom.gauges.dim = document.getElementById("gauge["+spotNo+"][dim]");
+            spot.dom.gauges.color = document.getElementById("gauge["+spotNo+"][color]");
+            spot.dom.gauges.focus = document.getElementById("gauge["+spotNo+"][focus]");
+            spot.dom.gauges.frost = document.getElementById("gauge["+spotNo+"][frost]");
         }.bind(this));
+
+        this.addVirtualMarkerToDOM();
+    }
+
+    addVirtualMarkerToDOM() {
+        document.getElementById("mainDrawArea").insertAdjacentHTML('beforeend',
+            '<svg class="spotMarker virtualMarker hiddenVis" id="virtualMarker" width="50" height="50">\n' +
+            '   <circle class="virtualMarkerHit" cx="50%" cy="50%" r="25" fill="transparent" stroke="none" />\n' +
+            '   <circle class="virtualMarkerVisual" cx="50%" cy="50%" r="15" fill="white" stroke="white" stroke-width=".2rem" stroke-opacity="1" fill-opacity=".5" pointer-events="none" />\n' +
+            '</svg>'
+        );
+        this.#virtualMarkerElement = document.getElementById("virtualMarker");
+        this.#virtualMarkerElement.style.zIndex = String(VIRTUAL_MARKER_Z_INDEX);
+        this.#virtualMarkerVisual = this.#virtualMarkerElement.querySelector(".virtualMarkerVisual");
+        this.setupVirtualMarkerInteraction();
+        if(global.virtualMarker !== undefined)
+            global.virtualMarker.updateMarkerVisibility();
+    }
+
+    setupVirtualMarkerInteraction() {
+        this.#virtualMarkerElement.addEventListener("pointerdown", this.onVirtualMarkerPointerDown);
+    }
+
+    onVirtualMarkerPointerDown(event) {
+        if(global.virtualMarker === undefined || !global.virtualMarker.isEnabled())
+            return;
+        if(this.#dragState !== null)
+            return;
+
+        event.preventDefault();
+        this.#dragState = {
+            virtualMarker: true,
+            pointerId: event.pointerId,
+            didMove: false
+        };
+        window.addEventListener("pointermove", this.onVirtualMarkerPointerMove);
+        window.addEventListener("pointerup", this.onVirtualMarkerPointerUp);
+        window.addEventListener("pointercancel", this.onVirtualMarkerPointerUp);
+    }
+
+    onVirtualMarkerPointerMove(event) {
+        if(this.#dragState === null || this.#dragState.virtualMarker !== true || event.pointerId !== this.#dragState.pointerId)
+            return;
+        if(global.virtualMarker === undefined || !global.virtualMarker.isEnabled())
+            return;
+
+        this.applyVirtualMarkerDragPosition(event);
+        this.#dragState.didMove = true;
+    }
+
+    onVirtualMarkerPointerUp(event) {
+        if(this.#dragState === null || this.#dragState.virtualMarker !== true || event.pointerId !== this.#dragState.pointerId)
+            return;
+
+        let didMove = this.#dragState.didMove === true;
+        window.removeEventListener("pointermove", this.onVirtualMarkerPointerMove);
+        window.removeEventListener("pointerup", this.onVirtualMarkerPointerUp);
+        window.removeEventListener("pointercancel", this.onVirtualMarkerPointerUp);
+        this.#dragState = null;
+        if(didMove && typeof global.flushArtNetIfPending === "function")
+            global.flushArtNetIfPending();
+    }
+
+    applyVirtualMarkerDragPosition(event) {
+        if(this.#mainDrawArea === null)
+            this.#mainDrawArea = document.getElementById("mainDrawArea");
+        let areaRect = this.#mainDrawArea.getBoundingClientRect();
+        let leftPx = event.clientX - areaRect.left;
+        let topPx = event.clientY - areaRect.top;
+        let regressionCoords = regression.screenPixelsToRegressionCoords(leftPx, topPx, this.#x_img_max, this.#y_img_max);
+        global.virtualMarker.setScreenPosition(regressionCoords[0], regressionCoords[1], true);
     }
 
     setupSpotMarkerInteraction(spotNo) {
@@ -76,7 +178,7 @@ class FollowJSMainView {
     }
 
     onSpotMarkerPointerDown(event, spotNo) {
-        if(!global.getSpot(spotNo).reverseDragEnabled)
+        if(this.#dragState !== null)
             return;
 
         event.preventDefault();
@@ -91,8 +193,6 @@ class FollowJSMainView {
     onSpotMarkerPointerMove(event) {
         if(this.#dragState === null || event.pointerId !== this.#dragState.pointerId)
             return;
-        if(!global.getSpot(this.#dragState.spotNo).reverseDragEnabled)
-            return;
 
         this.#dragState.didMove = true;
         this.applyReverseDragPosition(event);
@@ -100,65 +200,110 @@ class FollowJSMainView {
 
     onSpotMarkerPointerUp(event, spotNo) {
         if(this.#dragState !== null && this.#dragState.spotNo === spotNo && event.pointerId === this.#dragState.pointerId) {
+            let didMove = this.#dragState.didMove;
             if(event.currentTarget.hasPointerCapture(event.pointerId))
                 event.currentTarget.releasePointerCapture(event.pointerId);
             this.#dragState = null;
+            if(!didMove)
+                this.toggleContextMenu(spotNo);
+            else if(typeof global.flushArtNetIfPending === "function")
+                global.flushArtNetIfPending();
             return;
         }
-
-        if(!global.getSpot(spotNo).reverseDragEnabled)
-            this.toggleContextMenu(spotNo);
     }
 
+    /**
+     * Reverse drag: map pointer to screen coords, inverse-regression to pan/tilt.
+     */
     applyReverseDragPosition(event) {
-        let mainDrawArea = document.getElementById("mainDrawArea");
-        let areaRect = mainDrawArea.getBoundingClientRect();
+        if(this.#mainDrawArea === null)
+            this.#mainDrawArea = document.getElementById("mainDrawArea");
+        let areaRect = this.#mainDrawArea.getBoundingClientRect();
         let leftPx = event.clientX - areaRect.left;
         let topPx = event.clientY - areaRect.top;
         let regressionCoords = regression.screenPixelsToRegressionCoords(leftPx, topPx, this.#x_img_max, this.#y_img_max);
         let spot = global.getSpot(this.#dragState.spotNo);
-        let spotCoords = regression.inverseRegression(
-            spot.config.translation.regression,
+        let spotCoords = regression.screenToFixture(
+            spot.config.translation,
             regressionCoords[0],
             regressionCoords[1],
+            spot.config.boundaries,
             spot.state.x,
-            spot.state.y,
-            spot.config.boundaries
+            spot.state.y
         );
 
         spot.setPosition(spotCoords[0], spotCoords[1]);
     }
 
-    setReverseDragEnabled(spotNo, enabled) {
-        let spot = global.getSpot(spotNo);
-        spot.reverseDragEnabled = enabled === true;
-        document.getElementById("spotMarker["+spotNo+"]").classList.toggle("reverseDragEnabled", spot.reverseDragEnabled);
-    }
-
+    /**
+     * Redraw markers/gauges/DMX when `global.markUiDirty` was set. No-op if nothing changed.
+     */
     drawSpots() {
         global.forEachSpot(function(spot) {
-            let spotNo = spot.spotNumber;
-            let pos = regression.forwardRegression(spot.config.translation.regression, spot.state.x, spot.state.y);
+            let pos = spot.getScreenPosition();
             let pos_x = pos[0];
             let pos_y = pos[1];
 
-            let pos_r = spot.state.r;
-            let radius = ((pos_r*(this.#r_img_max-this.#r_img_min)+this.#r_img_min).toString());
-
+            let radius = ((spot.state.r*(this.#r_img_max-this.#r_img_min)+this.#r_img_min).toString());
             let opacity = (spot.state.shutterOpen === true) ? "0.4" : "0";
+            let top = ((1-pos_y) * this.#y_img_max).toString()+"px";
+            let left = (pos_x * this.#x_img_max).toString()+"px";
 
+            let spotMarkerElement = spot.dom.marker;
+            let spotMarkerCircle = spot.dom.markerCircle;
+            let cache = spot.renderCache.marker;
 
-            let spotMarkerElement = document.getElementById("spotMarker["+spotNo+"]");
-            spotMarkerElement.style.top = ((1-pos_y) * this.#y_img_max).toString()+"px";
-            spotMarkerElement.style.left = (pos_x * this.#x_img_max).toString()+"px";
-            // spotMarkerElement.style.transform = "translate("+(pos_x*100)+"%,"+((1-pos_y)*100)+"%)";
-            // spotMarkerElement.style.transform = "translate("+((pos_x * this.#x_img_max)-25).toString()+"px"+","+(((1-pos_y) * this.#y_img_max)-25).toString()+"px"+")"; // scale("+(pos_r).toString()+")";
+            if(cache.top !== top)
+                spotMarkerElement.style.top = top;
+            if(cache.left !== left)
+                spotMarkerElement.style.left = left;
+            if(cache.r !== radius)
+                spotMarkerCircle.setAttribute("r", radius);
+            if(cache.opacity !== opacity)
+                spotMarkerCircle.setAttribute("fill-opacity", opacity);
 
-            if(radius !== spotMarkerElement.firstElementChild.getAttribute("r"))
-                spotMarkerElement.firstElementChild.setAttribute("r", radius);
-            if(opacity !== spotMarkerElement.firstElementChild.getAttribute("fill-opacity"))
-                spotMarkerElement.firstElementChild.setAttribute("fill-opacity", opacity);
+            cache.top = top;
+            cache.left = left;
+            cache.r = radius;
+            cache.opacity = opacity;
         }.bind(this));
+
+        this.drawVirtualMarker();
+    }
+
+    drawVirtualMarker() {
+        if(global.virtualMarker === undefined || !global.virtualMarker.isEnabled())
+            return;
+
+        let vm = global.virtualMarker;
+        let radius = ((vm.state.r*(this.#r_img_max-this.#r_img_min)+this.#r_img_min).toString());
+        let opacity = (vm.state.shutterOpen === true) ? "0.5" : "0";
+        let strokeOpacity = opacity === "0" ? "0.85" : "1";
+        let top = ((1-vm.state.screenY) * this.#y_img_max).toString()+"px";
+        let left = (vm.state.screenX * this.#x_img_max).toString()+"px";
+        let cache = vm.renderCache;
+
+        if(this.#virtualMarkerElement === null) {
+            this.#virtualMarkerElement = document.getElementById("virtualMarker");
+            this.#virtualMarkerVisual = this.#virtualMarkerElement.querySelector(".virtualMarkerVisual");
+        }
+
+        if(cache.top !== top)
+            this.#virtualMarkerElement.style.top = top;
+        if(cache.left !== left)
+            this.#virtualMarkerElement.style.left = left;
+        if(cache.r !== radius)
+            this.#virtualMarkerVisual.setAttribute("r", radius);
+        if(cache.opacity !== opacity)
+            this.#virtualMarkerVisual.setAttribute("fill-opacity", opacity);
+        if(cache.strokeOpacity !== strokeOpacity)
+            this.#virtualMarkerVisual.setAttribute("stroke-opacity", strokeOpacity);
+
+        cache.top = top;
+        cache.left = left;
+        cache.r = radius;
+        cache.opacity = opacity;
+        cache.strokeOpacity = strokeOpacity;
     }
 
     paintMenus() {
@@ -181,7 +326,23 @@ class FollowJSMainView {
     }
 
     toggleContextMenu(spotNo) {
-        global.getSpot(spotNo).toggleContextMenu();
+        let spot = global.getSpot(spotNo);
+        if(spot.contextMenuState.visible) {
+            spot.hideContextMenu();
+            return;
+        }
+        this.hideAllContextMenus();
+        spot.showContextMenu('marker');
+    }
+
+    toggleContextMenuFromFooter(spotNo, anchorElement) {
+        let spot = global.getSpot(spotNo);
+        if(spot.contextMenuState.visible && spot.contextMenuState.placement === 'footer') {
+            spot.hideContextMenu();
+            return;
+        }
+        this.hideAllContextMenus();
+        spot.showContextMenu('footer', anchorElement);
     }
 
     highlightImageCoord(enable,x=0.5,y=0.5) {
@@ -256,40 +417,38 @@ class FollowJSMainView {
      * The resource needs a src-attribute.
      */
     refreshStaticImageResource(rsc) {
-        window.requestAnimationFrame(()=>{this.refreshStaticImageResource(rsc);});
-        if(rsc.dataset.pc < rsc.dataset.prescale) {
-            rsc.dataset.pc++;
+        if(rsc.dataset.refreshTimerId !== undefined)
             return;
-        }
-        // console.log("prescale elapsed");
-        rsc.dataset.pc = 0;
 
-        if(rsc.dataset.isLoading === "loading") {
-            rsc.dataset.prescale++;
-            // rsc.setAttribute('title', 'refresh every ' + rsc.dataset.prescale + ' loading cycles');
-            // rsc.attr('title', '');
-            rsc.dataset.refreshRetries++;
-            if(rsc.dataset.refreshRetries > 50) { //if data did not load in time for 50 rounds, the source is probably bad
-                //console.log('switch to slow retry');
-                rsc.classList.add('slowLoading');
-                rsc.dataset.prescale = (20 * rsc.dataset.defaultPrescale);
-            }
-            else {
-                // console.log("still busy loading, skipping reloading");
+        const tick = () => {
+            if(rsc.dataset.pc < rsc.dataset.prescale) {
+                rsc.dataset.pc++;
                 return;
             }
-        }
-        rsc.dataset.refreshRetries = 0;
-        rsc.classList.remove('slowLoading');
-        if(rsc.dataset.prescale >= (20 * rsc.dataset.defaultPrescale))
-            rsc.dataset.prescale = rsc.dataset.defaultPrescale;
+            rsc.dataset.pc = 0;
 
-        // console.log("loading new image");
+            if(rsc.dataset.isLoading === "loading") {
+                rsc.dataset.prescale++;
+                rsc.dataset.refreshRetries++;
+                if(rsc.dataset.refreshRetries > 50) {
+                    rsc.classList.add('slowLoading');
+                    rsc.dataset.prescale = (20 * rsc.dataset.defaultPrescale);
+                }
+                else {
+                    return;
+                }
+            }
+            rsc.dataset.refreshRetries = 0;
+            rsc.classList.remove('slowLoading');
+            if(rsc.dataset.prescale >= (20 * rsc.dataset.defaultPrescale))
+                rsc.dataset.prescale = rsc.dataset.defaultPrescale;
 
-        let appendix = "" + rsc.dataset.separator + "_=" + (new Date().valueOf());
-        rsc.setAttribute('src', "" + rsc.dataset.src + appendix);
+            let appendix = "" + rsc.dataset.separator + "_=" + (new Date().valueOf());
+            rsc.setAttribute('src', "" + rsc.dataset.src + appendix);
+            rsc.dataset.isLoading = "loading";
+        };
 
-        rsc.dataset.isLoading = "loading";
+        rsc.dataset.refreshTimerId = window.setInterval(tick, 1000 / 60);
     }
 
     //based on https://github.com/aruntj/mjpeg-readable-stream
@@ -336,7 +495,10 @@ class FollowJSMainView {
                                 imageBuffer[bodyBytes] = value[byte];
                                 bodyBytes++;
                             } else {
+                                if(rsc.dataset.previousBlobUrl !== undefined)
+                                    URL.revokeObjectURL(rsc.dataset.previousBlobUrl);
                                 let imageBlobUrl = URL.createObjectURL(new Blob([imageBuffer], {type: 'image/jpeg'}));
+                                rsc.dataset.previousBlobUrl = imageBlobUrl;
                                 rsc.src = imageBlobUrl;
 
                                 contentLength = 0;

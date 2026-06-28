@@ -1,17 +1,33 @@
 /* FollowJS */
 
 .theme-default {
-    --tc-foreground: #ffffff;
-    --tc-background: #1e2328;
-    --tc-border: #762551;
-    --tc-background-semitransparent: #762551AA;
-    --tc-text: #cccccc;
-    --tc-text-dark: #aaaaaa;
-    --tc-text-barelyVisible: #ffffff18;
-    --tc-text-barelyVisible-hover: #008080FF;
-    --tc-text-inverse: var(--tc-background);
-    --tc-text-shadow: 0 0 3px var(--tc-foreground);
-    --tc-text-shadow-slim: 0 0 1px var(--tc-foreground);
+    color-scheme: dark;
+    --tc-accent: #762551;
+    --tc-accent-bright: #9a3a6e;
+    --tc-accent-soft: rgba(118, 37, 81, 0.45);
+    --tc-accent-muted: rgba(118, 37, 81, 0.22);
+    --tc-foreground: #f0f2f5;
+    --tc-background: #0c0e12;
+    --tc-surface: #141820;
+    --tc-surface-raised: #1a2030;
+    --tc-border: var(--tc-accent);
+    --tc-border-subtle: rgba(255, 255, 255, 0.08);
+    --tc-background-semitransparent: rgba(12, 14, 18, 0.88);
+    --tc-text: #e2e6ec;
+    --tc-text-dark: #8b95a8;
+    --tc-text-barelyVisible: rgba(255, 255, 255, 0.22);
+    --tc-text-barelyVisible-hover: rgba(154, 58, 110, 0.95);
+    --tc-text-inverse: var(--tc-foreground);
+    --tc-text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+    --tc-text-shadow-slim: 0 1px 2px rgba(0, 0, 0, 0.65);
+    --tc-video-ring: var(--tc-accent-muted);
+    --tc-radius-sm: 0.35rem;
+    --tc-radius-md: 0.55rem;
+    --tc-radius-lg: 0.75rem;
+    --z-spot-marker-base: 1100;
+    --z-virtual-marker: 1200;
+    --z-spot-context-menu: 1250;
+    --z-main-ui-overlay: 1300;
 }
 
 *, *::before, *::after {
@@ -21,10 +37,11 @@
 body {
     margin: 0;
     color: var(--tc-text-dark);
-    background-color: #ffffff;
+    background-color: var(--tc-background);
     font-size: 1rem;
-    line-height: 1.5;
+    line-height: 1.45;
     font-family: system-ui, -apple-system, "Segoe UI Variable", "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
 }
 .container-fluid {
     height: 100vh;
@@ -55,26 +72,34 @@ body {
     text-align: center;
     width: 100%;
     min-height: 100vh;
-    background-color: var(--tc-background);
+    background:
+        radial-gradient(ellipse 120% 80% at 50% -20%, rgba(118, 37, 81, 0.12), transparent 55%),
+        var(--tc-background);
     display: flex;
     flex-direction: column;
-    padding-top: 2.5vw;
-    padding-bottom: 1rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.5rem;
     box-sizing: border-box;
+    gap: 0.35rem;
 }
 
 #mainDrawArea {
-    width: min(95vw, calc((100vh - 12rem) * 16 / 9));
-    max-height: calc(100vh - 12rem);
+    width: min(96vw, calc((100vh - 10rem) * 16 / 9));
+    max-height: calc(100vh - 10rem);
     height: auto;
     aspect-ratio: 16/9;
-    border: .25rem solid var(--tc-border);
+    border: 1px solid var(--tc-video-ring);
+    border-radius: var(--tc-radius-md);
     box-sizing: border-box;
     overflow: hidden;
     position: relative;
     margin: 0 auto;
     flex-shrink: 0;
-    /*cursor: crosshair;*/
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.45),
+        0 12px 40px rgba(0, 0, 0, 0.55),
+        0 0 48px rgba(118, 37, 81, 0.08);
+    background-color: #000;
 }
 
 .webcam {
@@ -93,6 +118,11 @@ body {
     top: 0;
     left: 0;
     overflow: visible;
+    z-index: calc(var(--z-main-ui-overlay) - 1);
+}
+
+#highlightMarker {
+    z-index: var(--z-main-ui-overlay);
 }
 
 .spotMarker {
@@ -103,51 +133,765 @@ body {
     left: 0;
     overflow: visible;
     touch-action: none;
-}
-
-.spotMarker.reverseDragEnabled {
     cursor: grab;
 }
 
-.spotMarker.reverseDragEnabled:active {
+.spotMarker:active {
     cursor: grabbing;
+}
+
+.spotMarker.virtualMarker {
+    z-index: var(--z-virtual-marker);
+    pointer-events: auto;
+}
+
+.spotMarker.virtualMarker.hiddenVis {
+    pointer-events: none;
+}
+
+.spotMarker.virtualMarker .virtualMarkerHit {
+    pointer-events: all;
+}
+
+.spotMarker.virtualMarker .virtualMarkerVisual {
+    pointer-events: none;
 }
 
 #dmxTable input[type="checkbox"] {
     cursor: pointer;
 }
 
-.textInputOverlay {
+.regressionOverlay {
     position: absolute;
     top: 50%;
     left: 50%;
-    padding: 2rem;
+    padding: 1.25rem 1.5rem;
     transform: translate(-50%,-50%);
-    /*background-color: #b43a79;*/
-    background-color: var(--tc-background);
-    border: .5rem solid var(--tc-border);
-    border-radius: 1rem;
-    z-index: 1005;
+    background-color: var(--tc-surface-raised);
+    border: 1px solid var(--tc-accent-soft);
+    border-radius: var(--tc-radius-lg);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+    color: var(--tc-text);
+    z-index: var(--z-main-ui-overlay);
+    max-width: min(92vw, 52rem);
+    max-height: 90vh;
+    overflow: auto;
+    pointer-events: auto;
+    -webkit-app-region: no-drag;
+}
+
+.regressionOverlayHeader h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--tc-foreground);
+}
+
+.regressionOverlayBody {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.regressionOverlayHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--tc-border-subtle);
+}
+
+.regressionOverlayHeader button,
+.regressionSelectionActions button,
+.regressionPendingActions button,
+#calibrationMenu button {
+    background: var(--tc-surface);
+    color: var(--tc-text);
+    border: 1px solid var(--tc-border-subtle);
+    border-radius: var(--tc-radius-sm);
+    padding: 0.35rem 0.7rem;
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.regressionOverlayHeader button:hover,
+.regressionSelectionActions button:hover,
+.regressionPendingActions button:hover,
+#calibrationMenu button:hover,
+.helpOverlayHeader button:hover {
+    background: var(--tc-accent-muted);
+    border-color: var(--tc-accent-soft);
+}
+
+.helpOpenButton {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    z-index: calc(var(--z-main-ui-overlay) + 2);
+    width: 1.85rem;
+    height: 1.85rem;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--tc-accent-soft);
+    background: rgba(12, 10, 14, 0.72);
+    color: var(--tc-foreground);
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    pointer-events: auto;
+    -webkit-app-region: no-drag;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.helpOpenButton:hover {
+    background: var(--tc-accent-muted);
+    border-color: var(--tc-accent);
+    color: #fff;
+}
+
+.helpOverlay {
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-main-ui-overlay);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.62);
+    pointer-events: auto;
+    -webkit-app-region: no-drag;
+}
+
+.helpOverlayPanel {
+    width: min(96%, 56rem);
+    max-height: 92%;
+    overflow: auto;
+    padding: 0;
+    background-color: var(--tc-surface-raised);
+    border: 1px solid var(--tc-accent-soft);
+    border-radius: var(--tc-radius-lg);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+    color: var(--tc-text);
+}
+
+.helpOverlayHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 0;
+    padding: 0.9rem 1.25rem;
+    border-bottom: 1px solid var(--tc-border-subtle);
+    background: linear-gradient(180deg, rgba(118, 37, 81, 0.14) 0%, transparent 100%);
+}
+
+.helpOverlayHeader h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--tc-foreground);
+    letter-spacing: 0.01em;
+}
+
+.helpOverlayHeader button {
+    background: var(--tc-surface);
+    color: var(--tc-text);
+    border: 1px solid var(--tc-border-subtle);
+    border-radius: var(--tc-radius-sm);
+    padding: 0.35rem 0.7rem;
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.helpOverlayColumns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    align-items: stretch;
+}
+
+.helpColumn {
+    min-width: 0;
+    border-right: 1px solid var(--tc-border-subtle);
+}
+
+.helpColumn:last-child {
+    border-right: none;
+}
+
+.helpColumnInner {
+    padding: 1rem 1.15rem 1.2rem;
+}
+
+.helpColumnTitle {
+    margin: 0 0 0.85rem;
+    padding-bottom: 0.55rem;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--tc-foreground);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--tc-accent-muted);
+}
+
+.helpSection {
+    margin-bottom: 0.9rem;
+    border: 1px solid var(--tc-border-subtle);
+    border-radius: var(--tc-radius-md);
+    background: var(--tc-surface);
+    overflow: hidden;
+}
+
+.helpSection:last-child {
+    margin-bottom: 0;
+}
+
+.helpSectionTitle {
+    margin: 0;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--tc-text-muted);
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--tc-border-subtle);
+}
+
+.helpTable {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.helpTable th,
+.helpTable td {
+    padding: 0.42rem 0.7rem;
+    vertical-align: top;
+    text-align: left;
+    border-bottom: 1px solid var(--tc-border-subtle);
+}
+
+.helpTable tr:last-child th,
+.helpTable tr:last-child td {
+    border-bottom: none;
+}
+
+.helpTable th {
+    width: 38%;
+    font-weight: 600;
+    color: var(--tc-foreground);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.76rem;
+    white-space: normal;
+    word-break: break-word;
+    background: rgba(118, 37, 81, 0.06);
+    border-right: 1px solid var(--tc-border-subtle);
+}
+
+.helpTable td {
+    color: var(--tc-text);
+    hyphens: auto;
+}
+
+.helpTable tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.015);
+}
+
+.helpTable tr:nth-child(even) th {
+    background: rgba(118, 37, 81, 0.1);
+}
+
+.helpGamepadSchematic {
+    margin-bottom: 0.9rem;
+    padding: 0;
+    border: 1px solid var(--tc-accent-soft);
+    border-radius: var(--tc-radius-md);
+    background: var(--tc-surface);
+    font-size: 0.75rem;
+    color: var(--tc-text);
+    overflow: hidden;
+}
+
+.helpPadMapTitle {
+    margin: 0;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--tc-text-muted);
+    background: rgba(118, 37, 81, 0.12);
+    border-bottom: 1px solid var(--tc-border-subtle);
+}
+
+.helpPadMapBody {
+    padding: 0.55rem 0.7rem 0.65rem;
+}
+
+.helpPadMapRow {
+    display: grid;
+    grid-template-columns: minmax(7rem, 40%) 1fr;
+    gap: 0.5rem 0.75rem;
+    align-items: start;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--tc-border-subtle);
+}
+
+.helpPadMapRow:last-of-type {
+    border-bottom: none;
+}
+
+.helpPadMapKey {
+    font-weight: 600;
+    color: var(--tc-foreground);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.72rem;
+    line-height: 1.35;
+}
+
+.helpPadMapRow > span:last-child {
+    color: var(--tc-text);
+    line-height: 1.35;
+}
+
+.helpPadMapSticks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+    margin: 0.5rem 0;
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--tc-border-subtle);
+    border-bottom: 1px solid var(--tc-border-subtle);
+}
+
+.helpPadMapStick {
+    padding: 0.5rem 0.55rem;
+    border: 1px solid var(--tc-border-subtle);
+    border-radius: var(--tc-radius-sm);
+    background: rgba(118, 37, 81, 0.08);
+    line-height: 1.45;
+}
+
+.helpPadMapStick strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.72rem;
+    color: var(--tc-accent-bright);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.helpPadMapHint {
+    margin: 0;
+    padding: 0.45rem 0.7rem;
+    border-top: 1px solid var(--tc-border-subtle);
+    font-size: 0.68rem;
+    color: var(--tc-text-muted);
+    line-height: 1.4;
+    background: rgba(0, 0, 0, 0.15);
+    font-style: italic;
+}
+
+@media (max-width: 640px) {
+    .helpOverlayColumns {
+        grid-template-columns: 1fr;
+    }
+
+    .helpColumn {
+        border-right: none;
+        border-bottom: 1px solid var(--tc-border-subtle);
+    }
+
+    .helpColumn:last-child {
+        border-bottom: none;
+    }
+
+    .helpTable th {
+        width: 42%;
+    }
+}
+
+/* debug only — Art-Net universe matrix overlay (disabled; see main.html, follow.js) */
+.artNetDebugOverlay {
+    position: fixed;
+    right: 0.5rem;
+    bottom: 2.25rem;
+    z-index: calc(var(--z-main-ui-overlay) + 10);
+    width: min(96vw, 52rem);
+    max-height: min(70vh, 28rem);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--tc-accent-soft);
+    border-radius: var(--tc-radius-md);
+    background: rgba(10, 12, 16, 0.94);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+    color: var(--tc-text);
+    -webkit-app-region: no-drag;
+    pointer-events: auto;
+}
+
+.artNetDebugHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.45rem 0.65rem;
+    border-bottom: 1px solid var(--tc-border-subtle);
+    background: rgba(118, 37, 81, 0.18);
+    flex-shrink: 0;
+}
+
+.artNetDebugHeader h3 {
+    margin: 0;
+    flex: 1;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--tc-foreground);
+}
+
+.artNetDebugTag {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--tc-accent-bright);
+}
+
+.artNetDebugTransmitCount {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.72rem;
+    color: var(--tc-text-muted);
+}
+
+.artNetDebugHeader button {
+    background: var(--tc-surface);
+    color: var(--tc-text);
+    border: 1px solid var(--tc-border-subtle);
+    border-radius: var(--tc-radius-sm);
+    padding: 0.25rem 0.55rem;
+    font: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.artNetDebugHeader button:hover {
+    background: var(--tc-accent-muted);
+    border-color: var(--tc-accent-soft);
+}
+
+.artNetDebugGrid {
+    display: grid;
+    grid-template-columns: repeat(32, minmax(0, 1fr));
+    grid-template-rows: repeat(16, minmax(0, 1fr));
+    gap: 1px;
+    padding: 0.35rem;
+    overflow: auto;
+    flex: 1;
+    background: var(--tc-border-subtle);
+}
+
+.artNetDebugCell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 1.55rem;
+    padding: 0.1rem 0.05rem;
+    background: rgba(20, 24, 32, 0.95);
+    line-height: 1.1;
+    text-align: center;
+}
+
+.artNetDebugCellActive {
+    background: rgba(118, 37, 81, 0.28);
+}
+
+.artNetDebugChNo {
+    font-size: 0.48rem;
+    color: var(--tc-text-muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.artNetDebugChVal {
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--tc-foreground);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.artNetDebugCellActive .artNetDebugChVal {
+    color: #fff;
+}
+
+.regressionCoefficients {
+    flex: 1 1 16rem;
+    margin: 0;
+    padding: 0.75rem;
+    background-color: var(--tc-surface);
+    border: 1px solid var(--tc-border-subtle);
+    border-radius: var(--tc-radius-md);
+    color: var(--tc-text-dark);
+    font-size: 0.75rem;
+    white-space: pre-wrap;
+    max-height: 24rem;
+    overflow: auto;
+}
+
+.regressionPlotLanding {
+    flex: 0 0 auto;
+    min-width: 18rem;
+}
+
+.regressionPlotEmptyMessage {
+    margin: 0;
+    padding: 1rem;
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
+
+.regressionPlotSvg {
+    width: 100%;
+    max-width: 22rem;
+    height: auto;
+    display: block;
+    background-color: #0a0d12;
+    border: 1px solid var(--tc-border-subtle);
+    border-radius: var(--tc-radius-md);
+}
+
+.regressionPlotArea {
+    fill: #0a0d12;
+}
+
+.regressionPlotGridLine {
+    stroke: #2a3542;
+    stroke-width: 1;
+}
+
+.regressionPlotCalibPoint {
+    fill: #9aa7b6;
+}
+
+.regressionPlotTargetPoint {
+    stroke: #6ecf6e;
+    stroke-width: 2;
+}
+
+.regressionPlotFitDeg2 {
+    stroke: #66d9ff;
+    stroke-width: 2;
+}
+
+.regressionPlotFitDeg3 {
+    stroke: #ffb347;
+    stroke-width: 2;
+}
+
+.regressionPlotFitDeg4 {
+    stroke: #d4a5ff;
+    stroke-width: 2;
+}
+
+.regressionPlotFitActive {
+    stroke-width: 3;
+}
+
+.regressionSelectionActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.regressionSelectionActions button {
+    pointer-events: auto;
+    -webkit-app-region: no-drag;
+}
+
+.regressionRecommendation {
+    margin: 0 0 0.75rem;
+    font-size: 0.85rem;
+}
+
+.regressionRecommendationError {
+    color: #ffb4a2;
+    font-weight: bold;
+}
+
+.regressionDegreeSummary {
+    margin-bottom: 0.75rem;
+}
+
+.regressionDegreeSummaryTable {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.regressionDegreeRow {
+    display: grid;
+    grid-template-columns: 6rem 1fr auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--tc-border-subtle);
+    border-radius: var(--tc-radius-sm);
+    background-color: var(--tc-surface);
+    font-size: 0.8rem;
+    text-align: left;
+    color: var(--tc-text);
+}
+
+button.regressionDegreeRow {
+    cursor: pointer;
+    width: 100%;
+    color: inherit;
+    font: inherit;
+}
+
+.regressionDegreeRow.regressionDegreeRecommended {
+    border-color: #ffd166;
+}
+
+.regressionDegreeRow.regressionDegreeSelected {
+    box-shadow: 0 0 0 2px #66d9ff inset;
+}
+
+.regressionDegreeRow.regressionDegreeActive {
+    box-shadow: 0 0 0 2px #6ecf6e inset;
+}
+
+.regressionDegreeError {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.9;
+}
+
+.regressionDegreeBadge {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #ffd166;
+    font-weight: bold;
+}
+
+.regressionDegreeBadgeActive {
+    color: #6ecf6e;
+}
+
+.regressionRecommendedButton {
+    box-shadow: 0 0 0 2px #ffd166 inset;
+}
+
+.regressionPendingBanner {
+    margin-top: 0.35rem;
+    padding: 0.55rem 0.85rem;
+    background-color: var(--tc-surface-raised);
+    border: 1px solid var(--tc-accent-soft);
+    border-left: 3px solid var(--tc-accent);
+    border-radius: var(--tc-radius-md);
+    font-size: 0.8rem;
+    color: var(--tc-text);
+    pointer-events: auto;
+    -webkit-app-region: no-drag;
+}
+
+.regressionPendingActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.regressionPendingActions button {
+    pointer-events: auto;
+    -webkit-app-region: no-drag;
+}
+
+.regressionCoefficients.hidden {
+    display: none;
+}
+
+.regressionPlotLegend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+}
+
+.regressionLegendItem {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.regressionLegendSwatch {
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 999px;
+    display: inline-block;
+}
+
+.regressionLegendSwatch.regressionPlotTargetPoint {
+    border-radius: 0;
+    width: 0.85rem;
+    height: 0.15rem;
+    background-color: #6ecf6e;
+}
+
+.regressionLegendSwatch.regressionPlotFitDeg2,
+.regressionLegendSwatch.regressionPlotFitDeg3,
+.regressionLegendSwatch.regressionPlotFitDeg4 {
+    border-radius: 0;
+    height: 0.15rem;
+}
+
+.regressionLegendSwatch.regressionPlotFitDeg2 {
+    background-color: #66d9ff;
+}
+
+.regressionLegendSwatch.regressionPlotFitDeg3 {
+    background-color: #ffb347;
+}
+
+.regressionLegendSwatch.regressionPlotFitDeg4 {
+    background-color: #d4a5ff;
 }
 
 .cameraImageHugeWarningTextOverlay {
     position: absolute;
     top: 50%;
     left: 50%;
-    background-color: var(--tc-background-semitransparent);
-    color: var(--tc-text-inverse);
-    /*color: #ced4da;*/
+    background-color: rgba(12, 14, 18, 0.82);
+    color: var(--tc-text);
     width: max-content;
-    height: 5rem;
+    height: auto;
+    min-height: 3.25rem;
     box-sizing: border-box;
-    box-shadow: 10px 10px 5px rgba(45, 14, 32, 0.67);
-    font-family: sans-serif;
-    font-size: 2.5rem;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+    font-family: inherit;
+    font-size: 1.35rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
     text-align: center;
-    padding: 1rem 2rem 1rem 2rem;
-    z-index: 1000;
+    padding: 0.75rem 1.5rem;
+    border: 1px solid var(--tc-accent-soft);
+    border-radius: var(--tc-radius-md);
+    z-index: var(--z-main-ui-overlay);
     animation: moveX 21s linear 0s infinite alternate, moveY 16s linear 0s infinite alternate;
     pointer-events: none;
+    backdrop-filter: blur(6px);
 }
 
 @keyframes moveX {
@@ -156,7 +900,7 @@ body {
 }
 @keyframes moveY {
     from {top: 0%;}
-    to {top: calc(100% - 5rem);}
+    to {top: calc(100% - 3.25rem);}
 }
 
 @keyframes pulseAnimation {
@@ -181,84 +925,150 @@ body {
     left: 50%;
     background-color: var(--tc-background-semitransparent);
     color: var(--tc-text);
-    z-index: 900;
+    z-index: var(--z-spot-context-menu);
     box-sizing: border-box;
     text-align: left;
+    border: 1px solid var(--tc-accent-soft);
+    border-radius: var(--tc-radius-md);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    overflow: hidden;
+    min-width: 9rem;
+    pointer-events: auto;
+}
+
+.spotContextMenu.hidden,
+.spotContextMenu:empty {
+    display: none !important;
+    border: none;
+    box-shadow: none;
+    min-width: 0;
+    pointer-events: none;
+}
+
+.spotContextMenu.spotContextMenuFooterAnchored {
+    position: fixed;
+    z-index: 1100;
+}
+
+.footerSpotMenuButton {
+    cursor: pointer;
+    font-size: inherit;
+    line-height: 1;
+    padding: 0.1em 0.45em;
+    border: 1px solid var(--tc-border-subtle);
+    border-radius: var(--tc-radius-sm);
+    background-color: var(--tc-surface);
+    color: var(--tc-text-dark);
+    vertical-align: middle;
+    -webkit-app-region: no-drag;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.footerSpotMenuButton:hover {
+    background-color: var(--tc-accent-muted);
+    border-color: var(--tc-accent-soft);
+    color: var(--tc-text);
 }
 
 .spotContextMenu div {
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding: 0.35rem 0.85rem;
 }
 .spotContextMenu div:first-child {
-    font-weight: bold;
-    border-bottom: 2px solid var(--tc-text);
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--tc-accent-bright);
+    border-bottom: 1px solid var(--tc-border-subtle);
+    background: rgba(118, 37, 81, 0.12);
 }
 
 .spotContextMenuHighlight {
-    background-color: #ff0000ff;
-    border-bottom: 2px solid #ffaa00;
-    border-top: 2px solid #ffaa00;
-    margin: -2px 0 -2px 0;
+    background-color: rgba(118, 37, 81, 0.55);
+    border-top: 1px solid var(--tc-accent-soft);
+    border-bottom: 1px solid var(--tc-accent-soft);
+    margin: 0;
 }
 
 .spotStatusOverlayArea {
     position: absolute;
-    transform: translate(-50%,-100%);
+    transform: translate(-50%, -100%);
     left: 50%;
-    top: calc(100% - 5vh);
+    top: calc(100% - 0.35rem);
     z-index: 100;
     width: fit-content;
+    max-width: 96%;
     pointer-events: none;
-    align-items: start;
+    align-items: end;
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem;
 }
 
 .spotStatusOverlayGroup {
-    border: .25rem solid var(--tc-border);
-    padding: 0;
-    margin-right: 1rem;
-    margin-left: 1rem;
-    /*color: #dddddd;*/
-}
-
-.spotStatusGauge {
-    text-align: left;
-    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    width: 8.75rem;
+    border: 1px solid var(--tc-accent-soft);
+    border-radius: var(--tc-radius-sm);
+    padding: 0.28rem 0.35rem;
+    margin: 0;
     overflow: hidden;
-    /*opacity: 0.75;*/
-    color: var(--tc-text);
-    mix-blend-mode: difference;
-    border-right: 3px solid #FF0000;
+    background: rgba(8, 10, 14, 0.72);
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
 }
 
-.spotStatusGauge div {
-    width: 10rem;
-    height: fit-content;
-    padding-left: 1rem;
-    padding-right: 1rem;
+.spotStatusGaugeRow {
+    display: grid;
+    grid-template-columns: 2rem 1fr;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.spotStatusGaugeLabel {
+    font-size: 0.52rem;
+    line-height: 1;
+    color: var(--tc-text-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.spotStatusGaugeTrack {
+    width: 100%;
+    height: 0.5rem;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.spotStatusGaugeFill {
+    height: 100%;
+    min-width: 0;
+    max-width: 100%;
+    border-radius: 1px;
 }
 
 .spotStatusOverlayDim {
-    background: linear-gradient(to right, #000000 0%, #FFFFFF 100%);
+    background: linear-gradient(to right, #000000 0%, #ffffff 100%);
 }
 
 .spotStatusOverlayColor {
-/*    background: linear-gradient(to right, #ffffff 0%,*/
-/*    #FF0000 14.9%, #ff0000 21.16%,*/
-/*    #fcdf56 29.0%, #fcdf56 35.28%,*/
-/*    #04bb3d 43.14%, #04bb3d 49.4%,*/
-/*    #0ab7d7 58.04%, #0ab7d7 64.3%,*/
-/*    #ffaa00 72.16%, #ffaa00 78.42%,*/
-/*    #2f00cd 86.28%, #2f00cd 92.54%,*/
-/*    #ffffff 100%);*/
+    background-color: #888888;
 }
+
 .spotStatusOverlayFocus {
-    background: linear-gradient(to right, #1066ffFF 0%, #00448dFF 100%);
+    background: linear-gradient(to right, #1066ff 0%, #00448d 100%);
 }
+
 .spotStatusOverlayFrost {
-    background: linear-gradient(to right, #CCCCCCFF 0%, #CCCCCC22 100%);
+    background: linear-gradient(to right, rgba(220, 220, 220, 1) 0%, rgba(220, 220, 220, 0.15) 100%);
 }
 
 #calibrationMenu {
@@ -266,7 +1076,7 @@ body {
     width: fit-content;
     align-self: flex-start;
     text-align: left;
-    padding: 0.75rem 2rem 0;
+    padding: 0.25rem 1rem 0;
     z-index: 1100;
     pointer-events: auto;
 }
@@ -277,73 +1087,243 @@ body {
     -webkit-app-region: no-drag;
 }
 
-#inputOverlayText {
-    background-color: var(--tc-background);
-    color: var(--tc-text);
-    /*background-color: #ECECECFF;*/
-}
-
-.backgroundFlashRed {
-    animation: bgFlashRed 1s ease-in;
-}
-@keyframes bgFlashRed {
-    0% {
-        background-color: #8B0000FF;
-    }
-    100% {
-        background-color: var(--tc-background);
-    }
-}
-
 .button-red {
-    background-color: orangered;
-    border: 1px solid darkred;
-    color: white;
-    font-weight: bold;
-    padding: .25rem;
-    border-radius: .4rem;
+    background-color: #8b2f2f;
+    border: 1px solid #c24a4a;
+    color: #ffeaea;
+    font-weight: 600;
+    padding: 0.3rem 0.55rem;
+    border-radius: var(--tc-radius-sm);
+    font-size: 0.85rem;
 }
 
 .button-green {
-    background-color: darkgreen;
-    border: 1px solid lightgreen;
-    color: white;
-    font-weight: bold;
-    padding: .25rem;
-    border-radius: .4rem;
+    background-color: #1f5c3a;
+    border: 1px solid #3d9a62;
+    color: #e8fff0;
+    font-weight: 600;
+    padding: 0.3rem 0.55rem;
+    border-radius: var(--tc-radius-sm);
+    font-size: 0.85rem;
 }
 
 #dmxFooter {
-    margin-top: 0.5rem;
-    margin-bottom: 1em;
+    margin-top: 0.15rem;
+    margin-bottom: 0.35rem;
     position: relative;
-    width: fit-content;
+    width: 100%;
+    max-width: 96vw;
     text-align: center;
     flex-shrink: 0;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 0.65rem 1.25rem;
+    padding: 0.45rem 0.65rem;
+    border-radius: var(--tc-radius-md);
+    background: rgba(20, 24, 32, 0.55);
+    border: 1px solid var(--tc-border-subtle);
 }
 
 #dmxTable {
     color: var(--tc-text-dark);
-    /*table-layout: fixed;*/
-    /*width: auto;*/
     border-collapse: collapse;
+    font-size: 0.58em;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
 }
 
 #dmxTableHeader {
-    font-weight: bold;
+    font-weight: 600;
+    color: var(--tc-text);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 0.95em;
 }
 #dmxTableHeader td {
-    border-bottom: 1px solid var(--tc-text-dark);
+    border-bottom: 1px solid var(--tc-accent-muted);
+    padding-bottom: 0.25em;
+}
+
+#dmxTable td {
+    padding: 0.12em 0.35em;
 }
 
 #dmxTable .dmxTableArtnetStart {
-    border-left: 2px solid var(--tc-text-dark);
-    padding-left: 0.5em;
+    border-left: 1px solid var(--tc-border-subtle);
+    padding-left: 0.45em;
 }
 
 #dmxTable .dmxTableArtnetEnd {
-    border-right: 2px solid var(--tc-text-dark);
-    padding-right: 0.5em;
+    border-right: 1px solid var(--tc-border-subtle);
+    padding-right: 0.45em;
+}
+
+#gamepadListSection {
+    text-align: left;
+    flex-shrink: 0;
+}
+
+#gamepadListTable {
+    color: var(--tc-text-dark);
+    border-collapse: collapse;
+    font-size: 0.62em;
+    font-variant-numeric: tabular-nums;
+}
+
+#gamepadListTable th {
+    font-weight: 600;
+    color: var(--tc-text);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--tc-accent-muted);
+    padding: 0.12em 0.45em 0.22em 0;
+    text-align: left;
+    font-size: 0.95em;
+}
+
+#gamepadListTable td {
+    padding: 0.15em 0.45em 0.15em 0;
+    vertical-align: middle;
+    max-width: 10rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#gamepadListTable .gamepadListStatus {
+    color: var(--tc-text-barelyVisible);
+    font-style: italic;
+    max-width: none;
+    white-space: normal;
+}
+
+#gamepadAssignmentSection {
+    text-align: left;
+    flex-shrink: 0;
+}
+
+/* Control mode switch — lower left of video area */
+.controlModeSwitch {
+    position: absolute;
+    left: 0.5rem;
+    bottom: 0.5rem;
+    z-index: calc(var(--z-main-ui-overlay) + 2);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    width: 7.65rem;
+    padding: 0.3rem;
+    border-radius: var(--tc-radius-md);
+    background: rgba(20, 24, 32, 0.82);
+    border: 1px solid var(--tc-border-subtle);
+    font-size: 0.68rem;
+    -webkit-app-region: no-drag;
+    backdrop-filter: blur(6px);
+}
+
+.controlModeSwitchLabel {
+    color: var(--tc-text-barelyVisible);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    font-size: 0.85em;
+    text-align: center;
+    padding: 0 0.1rem 0.3rem;
+}
+
+.controlModeButton {
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--tc-text-dark);
+    border: 1px solid var(--tc-border-subtle);
+    border-radius: 0;
+    padding: 0.34rem 0.45rem;
+    font-size: inherit;
+    font-weight: 600;
+    line-height: 1.15;
+    text-align: center;
+    white-space: nowrap;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.controlModeButton:first-of-type {
+    border-radius: var(--tc-radius-sm) var(--tc-radius-sm) 0 0;
+}
+
+.controlModeButton:last-of-type {
+    border-radius: 0 0 var(--tc-radius-sm) var(--tc-radius-sm);
+}
+
+.controlModeButton + .controlModeButton {
+    margin-top: -1px;
+}
+
+.controlModeButton:hover:not(.is-active) {
+    border-color: var(--tc-accent-soft);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--tc-text);
+    z-index: 1;
+    position: relative;
+}
+
+.controlModeButton.is-active {
+    background: rgba(118, 37, 81, 0.38);
+    border-color: var(--tc-accent-bright);
+    color: var(--tc-foreground);
+    box-shadow:
+        inset 3px 0 0 var(--tc-accent-bright),
+        0 0 12px rgba(118, 37, 81, 0.25);
+    z-index: 2;
+    position: relative;
+}
+
+#gamepadAssignmentTable {
+    color: var(--tc-text-dark);
+    border-collapse: collapse;
+    font-size: 0.62em;
+    font-variant-numeric: tabular-nums;
+}
+
+#gamepadAssignmentTable th {
+    font-weight: 600;
+    color: var(--tc-text);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--tc-accent-muted);
+    padding: 0.12em 0.45em 0.22em 0;
+    text-align: left;
+    font-size: 0.95em;
+}
+
+#gamepadAssignmentTable td {
+    padding: 0.15em 0.45em 0.15em 0;
+    vertical-align: middle;
+}
+
+#gamepadAssignmentTable select {
+    font-size: inherit;
+    max-width: 11rem;
+    cursor: pointer;
+    background: var(--tc-surface);
+    color: var(--tc-text);
+    border: 1px solid var(--tc-border-subtle);
+    border-radius: var(--tc-radius-sm);
+    padding: 0.15em 0.35em;
+}
+
+#gamepadAssignmentTable select:hover {
+    border-color: var(--tc-accent-soft);
+}
+
+#gamepadAssignmentTable .gamepadAssignmentStatus {
+    color: var(--tc-text-barelyVisible);
+    font-style: italic;
 }
 
 .barelyVisibleFooter {
@@ -351,16 +1331,19 @@ body {
     bottom: 0;
     right: 0;
     color: var(--tc-text-barelyVisible);
-    padding-right: .2rem;
-    padding-bottom: .2rem;
-    font-size: .85rem;
+    padding-right: 0.35rem;
+    padding-bottom: 0.2rem;
+    font-size: 0.72rem;
     cursor: default;
     text-align: right;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
 }
 
 #gamepadDebugInfo::after {
     content: " · ";
 }
+
 .barelyVisibleFooter:hover {
     color: var(--tc-text-barelyVisible-hover);
 }

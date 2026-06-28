@@ -1,8 +1,21 @@
 "use strict";
-const {app, BrowserWindow} = require('electron');
+
+/** @file Electron main process entry: fullscreen window, loads main.html (renderer). */
+
+const {app, BrowserWindow, dialog} = require('electron');
 const path = require('path');
 
 let winRef;
+
+function focusMainWindow() {
+  if (winRef === null)
+    return;
+  if (winRef.isMinimized())
+    winRef.restore();
+  if (!winRef.isVisible())
+    winRef.show();
+  winRef.focus();
+}
 
 async function createWindow () {
   winRef = new BrowserWindow({
@@ -40,18 +53,41 @@ async function createWindow () {
   })
 }
 
-app.on('ready', () => {
-  createWindow();
-});
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
 
-app.on('window-all-closed', () => {
-  if (!process.platform.includes('darwin')) {
+if (!gotSingleInstanceLock) {
+  app.whenReady().then(() => {
+    dialog.showMessageBoxSync({
+      type: 'info',
+      title: app.getName(),
+      message: app.getName() + ' is already running.',
+      detail: 'Only one instance can run at a time. Close the existing window or quit the app before starting again.',
+      buttons: ['OK']
+    });
     app.quit();
-  }
-});
+  });
+}
+else {
+  app.on('second-instance', () => {
+    focusMainWindow();
+  });
 
-app.on('activate', () => {
-  if (winRef === null) {
+  app.on('ready', () => {
     createWindow();
-  }
-});
+  });
+
+  app.on('window-all-closed', () => {
+    if (!process.platform.includes('darwin')) {
+      app.quit();
+    }
+  });
+
+  app.on('activate', () => {
+    if (winRef === null) {
+      createWindow();
+    }
+    else {
+      focusMainWindow();
+    }
+  });
+}
